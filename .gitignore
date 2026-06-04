@@ -41,6 +41,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+# herramientas internas del asistente (no forman parte de la app)
+.agents/
+.claude/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
