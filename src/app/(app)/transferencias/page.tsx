@@ -1,12 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { BANCOS, MONEDAS } from "@/lib/bancos";
 import { formatMonto, formatFecha } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import ClienteCombobox from "@/components/ClienteCombobox";
 import BancoSelect from "@/components/BancoSelect";
 import { comprimirImagen } from "@/lib/imagen";
+import { analizarRecibo, type DatosRecibo } from "@/lib/ocr";
 
 type CuentaOpt = {
   id: string;
@@ -77,7 +78,36 @@ export default function TransferenciasPage() {
   const [editar, setEditar] = useState<Transferencia | null>(null);
   const [verComprobante, setVerComprobante] = useState<string | null>(null);
   const [mostrarForm, setMostrarForm] = useState(true);
+  const formRef = useRef<HTMLFormElement>(null);
+  const filtroRef = useRef<HTMLInputElement>(null);
   const pageSize = 25;
+
+  // Atajos de teclado
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      // Alt+N: mostrar/ocultar formulario de nueva transferencia
+      if (e.altKey && (e.key === "n" || e.key === "N")) {
+        e.preventDefault();
+        setMostrarForm((v) => !v);
+        return;
+      }
+      // Ctrl/Cmd+Enter: guardar el formulario
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        e.preventDefault();
+        formRef.current?.requestSubmit();
+        return;
+      }
+      // "/": ir al buscador (si no estás escribiendo en un campo)
+      const tag = (e.target as HTMLElement)?.tagName;
+      const escribiendo = tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT";
+      if (e.key === "/" && !escribiendo) {
+        e.preventDefault();
+        filtroRef.current?.focus();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
 
   const cargarClientes = useCallback(async () => {
     const res = await fetch("/api/clientes");
@@ -192,19 +222,28 @@ export default function TransferenciasPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Transferencias</h1>
-        <button
-          onClick={() => setMostrarForm((v) => !v)}
-          className="btn-primary"
-        >
-          {mostrarForm ? "✕ Ocultar formulario" : "➕ Nueva transferencia"}
-        </button>
+      <div>
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold">Transferencias</h1>
+          <button
+            onClick={() => setMostrarForm((v) => !v)}
+            className="btn-primary"
+            title="Atajo: Alt+N"
+          >
+            {mostrarForm ? "✕ Ocultar formulario" : "➕ Nueva transferencia"}
+          </button>
+        </div>
+        <p className="mt-1 text-xs text-slate-400">
+          Atajos: <kbd className="font-sans">Alt+N</kbd> nueva ·{" "}
+          <kbd className="font-sans">Ctrl/⌘+Enter</kbd> guardar ·{" "}
+          <kbd className="font-sans">/</kbd> buscar ·{" "}
+          <kbd className="font-sans">Esc</kbd> cerrar
+        </p>
       </div>
 
       {/* Formulario de registro */}
       {mostrarForm && (
-        <form onSubmit={crear} className="card grid gap-4 sm:grid-cols-3">
+        <form ref={formRef} onSubmit={crear} className="card grid gap-4 sm:grid-cols-3">
           <div>
             <label className="label">Fecha *</label>
             <input
@@ -323,7 +362,28 @@ export default function TransferenciasPage() {
             <ComprobanteCampo
               value={form.comprobante}
               onChange={(v) => setForm({ ...form, comprobante: v })}
+              onExtract={(d) => {
+                setForm((f) => ({
+                  ...f,
+                  monto: f.monto || (d.monto ? String(d.monto) : f.monto),
+                  referencia: f.referencia || d.referencia || f.referencia,
+                  bancoOrigen: f.bancoOrigen || d.banco || f.bancoOrigen,
+                }));
+                const partes: string[] = [];
+                if (d.monto) partes.push("monto");
+                if (d.referencia) partes.push("referencia");
+                if (d.banco) partes.push("banco");
+                toast(
+                  partes.length
+                    ? `🔎 Detectado del recibo: ${partes.join(", ")}`
+                    : "No se detectaron datos en el recibo",
+                  partes.length ? "ok" : "info",
+                );
+              }}
             />
+            <p className="mt-1 text-xs text-slate-400">
+              Al subir la foto, se intenta leer monto, referencia y banco.
+            </p>
           </div>
           <div className="sm:col-span-3">
             <button className="btn-primary" disabled={guardando}>
@@ -370,6 +430,7 @@ export default function TransferenciasPage() {
           placeholder="👤 Filtrar por cliente…"
         />
         <input
+          ref={filtroRef}
           className="input"
           placeholder="🔍 Referencia"
           value={filtros.q}
@@ -559,14 +620,19 @@ export default function TransferenciasPage() {
 }
 
 // Campo para subir/quitar la foto del comprobante (con vista previa).
+// Si recibe onExtract, lee el recibo (OCR) y devuelve los datos detectados.
 function ComprobanteCampo({
   value,
   onChange,
+  onExtract,
 }: {
   value: string;
   onChange: (v: string) => void;
+  onExtract?: (datos: DatosRecibo) => void;
 }) {
   const [procesando, setProcesando] = useState(false);
+  const [ocr, setOcr] = useState<number | null>(null);
+  const [ampliar, setAmpliar] = useState(false);
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -575,6 +641,17 @@ function ComprobanteCampo({
     try {
       const dataUrl = await comprimirImagen(file);
       onChange(dataUrl);
+      if (onExtract && dataUrl.startsWith("data:image")) {
+        setOcr(0);
+        try {
+          const datos = await analizarRecibo(dataUrl, (p) => setOcr(p));
+          onExtract(datos);
+        } catch {
+          toast("No se pudo leer el recibo", "error");
+        } finally {
+          setOcr(null);
+        }
+      }
     } catch {
       toast("No se pudo procesar la imagen", "error");
     } finally {
@@ -587,22 +664,39 @@ function ComprobanteCampo({
     return (
       <div className="flex items-center gap-3">
         {value.startsWith("data:image") ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={value}
-            alt="Comprobante"
-            className="h-16 w-16 rounded-lg object-cover ring-1 ring-slate-300"
-          />
+          <>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={value}
+              alt="Comprobante"
+              onClick={() => setAmpliar(true)}
+              className="h-16 w-16 cursor-zoom-in rounded-lg object-cover ring-1 ring-slate-300"
+              title="Clic para ampliar"
+            />
+            {ampliar && (
+              <div
+                className="fixed inset-0 z-[55] flex items-center justify-center bg-black/60 p-4"
+                onClick={() => setAmpliar(false)}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={value} alt="Comprobante" className="max-h-[90vh] max-w-full rounded-lg" />
+              </div>
+            )}
+          </>
         ) : (
           <span className="text-sm">📄 Archivo adjunto</span>
         )}
-        <button
-          type="button"
-          onClick={() => onChange("")}
-          className="btn-secondary px-3 py-1.5 text-xs"
-        >
-          Quitar
-        </button>
+        {ocr !== null ? (
+          <span className="text-xs text-slate-500">🔎 Leyendo recibo… {ocr}%</span>
+        ) : (
+          <button
+            type="button"
+            onClick={() => onChange("")}
+            className="btn-secondary px-3 py-1.5 text-xs"
+          >
+            Quitar
+          </button>
+        )}
       </div>
     );
   }
@@ -630,6 +724,14 @@ function VisorComprobante({ id, onClose }: { id: string; onClose: () => void }) 
       .then((t) => setSrc(t.comprobante ?? null))
       .finally(() => setCargando(false));
   }, [id]);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   return (
     <div
@@ -704,6 +806,15 @@ function EditarModal({
       .catch(() => {})
       .finally(() => setCompListo(true));
   }, [transferencia.id, transferencia.tieneComprobante]);
+
+  // Cerrar con la tecla Esc
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
 
   const cuentas =
     clientes.find((c) => c.id === form.clienteId)?.cuentas ?? [];
