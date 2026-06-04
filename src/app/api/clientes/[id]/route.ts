@@ -1,0 +1,59 @@
+import { NextRequest, NextResponse } from "next/server";
+import { z } from "zod";
+import { prisma } from "@/lib/prisma";
+import { serializeCuenta } from "@/lib/serializers";
+
+const updateSchema = z.object({
+  nombre: z.string().min(1).optional(),
+  alias: z.string().optional().nullable(),
+  notas: z.string().optional().nullable(),
+});
+
+type Ctx = { params: Promise<{ id: string }> };
+
+export async function GET(_req: NextRequest, ctx: Ctx) {
+  const { id } = await ctx.params;
+  const cliente = await prisma.cliente.findUnique({
+    where: { id },
+    include: { cuentas: true },
+  });
+  if (!cliente) {
+    return NextResponse.json({ error: "Cliente no encontrado" }, { status: 404 });
+  }
+  return NextResponse.json({
+    id: cliente.id,
+    nombre: cliente.nombre,
+    alias: cliente.alias,
+    notas: cliente.notas,
+    cuentas: cliente.cuentas.map(serializeCuenta),
+  });
+}
+
+export async function PUT(request: NextRequest, ctx: Ctx) {
+  const { id } = await ctx.params;
+  const body = await request.json().catch(() => null);
+  const parsed = updateSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues[0]?.message ?? "Datos inválidos" },
+      { status: 400 },
+    );
+  }
+  const cliente = await prisma.cliente.update({
+    where: { id },
+    data: parsed.data,
+  });
+  await prisma.auditLog.create({
+    data: { accion: "editar", entidad: "cliente", entidadId: id, detalle: cliente.nombre },
+  });
+  return NextResponse.json({ ok: true });
+}
+
+export async function DELETE(_req: NextRequest, ctx: Ctx) {
+  const { id } = await ctx.params;
+  await prisma.cliente.delete({ where: { id } });
+  await prisma.auditLog.create({
+    data: { accion: "eliminar", entidad: "cliente", entidadId: id },
+  });
+  return NextResponse.json({ ok: true });
+}

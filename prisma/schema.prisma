@@ -1,0 +1,93 @@
+// Esquema de la base de datos de "Mis Transferencias".
+// Para desarrollo local usamos SQLite (archivo dev.db).
+// Al desplegar en internet se cambia el provider a "postgresql" (Neon).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Usuario(s) que pueden iniciar sesión. En tu caso, solo tú.
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String?
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+// Cliente/Usuario al que le haces transferencias.
+model Cliente {
+  id        String   @id @default(cuid())
+  nombre    String
+  alias     String?
+  notas     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cuentas        CuentaBancaria[]
+  transferencias Transferencia[]
+
+  @@index([nombre])
+}
+
+// Cuenta o tarjeta de un cliente. El número va CIFRADO (AES-256-GCM).
+// Nunca se guarda el número en texto plano; solo los últimos 4 dígitos
+// se guardan en claro para poder mostrar el enmascarado (•••• 1234).
+model CuentaBancaria {
+  id            String  @id @default(cuid())
+  clienteId     String
+  cliente       Cliente @relation(fields: [clienteId], references: [id], onDelete: Cascade)
+  banco         String
+  tipo          String  // "cuenta" | "tarjeta" | "clabe"
+  titular       String?
+  numeroCifrado String  // número completo, cifrado
+  last4         String  // últimos 4 dígitos, en claro, para enmascarar
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  transferencias Transferencia[]
+
+  @@index([clienteId])
+}
+
+// Transferencia registrada.
+model Transferencia {
+  id            String   @id @default(cuid())
+  fecha         DateTime
+  clienteId     String?
+  cliente       Cliente? @relation(fields: [clienteId], references: [id], onDelete: SetNull)
+  cuentaId      String?
+  cuenta        CuentaBancaria? @relation(fields: [cuentaId], references: [id], onDelete: SetNull)
+  monto         Float
+  moneda        String   @default("MXN")
+  bancoOrigen   String?
+  bancoDestino  String?
+  referencia    String?
+  estado        String   @default("pendiente") // "pendiente" | "reflejada"
+  observaciones String?
+  comprobante   String?  // ruta/URL del comprobante (opcional)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([fecha])
+  @@index([estado])
+  @@index([clienteId])
+}
+
+// Registro de auditoría: qué se creó, editó o borró y cuándo.
+model AuditLog {
+  id        String   @id @default(cuid())
+  accion    String   // "crear" | "editar" | "eliminar" | "login"
+  entidad   String   // "transferencia" | "cliente" | "cuenta" | "sesion"
+  entidadId String?
+  detalle   String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}

@@ -1,0 +1,17 @@
+{
+  "name": "Mis Transferencias · Full Party",
+  "short_name": "Transferencias",
+  "description": "Registro seguro de transferencias",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f1f5f9",
+  "theme_color": "#667eea",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

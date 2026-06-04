@@ -1,36 +1,42 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 💳 Mis Transferencias · Full Party
 
-## Getting Started
+App web segura para registrar y controlar transferencias. Reemplaza la versión
+anterior de un solo archivo HTML.
 
-First, run the development server:
+## ✨ Qué incluye
+
+- 🔐 **Login** con contraseña (hasheada con bcrypt). Nadie ve los datos sin entrar.
+- 🛡️ **Datos sensibles cifrados** (números de cuenta, tarjetas, CLABE) con AES-256-GCM.
+  En la base de datos se ven ilegibles; solo se guardan los últimos 4 dígitos en claro.
+- 👁️ **Enmascarado**: en pantalla solo ves `•••• •••• •••• 1234`, con botón "Mostrar".
+- 👥 **Clientes** con sus cuentas/tarjetas guardadas y seguras.
+- 💸 **Transferencias**: registro, filtros, estados (pendiente/reflejada), edición.
+- 🏠 **Dashboard** con totales por moneda y últimas transferencias.
+- 📊 **Reportes**: exportar a Excel/CSV, respaldo JSON, imprimir/PDF.
+- 📱 **Instalable** en el celular (PWA).
+- 📝 **Auditoría**: registra creaciones, ediciones, borrados y accesos.
+
+## 🧰 Tecnología
+
+Next.js 16 · React 19 · Prisma 6 · PostgreSQL (Neon) · Tailwind 4 · jose · bcrypt.
+
+## 💻 Correr en local
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+# 1) pon tu DATABASE_URL de Neon en .env
+npx prisma db push      # crea las tablas
+npx prisma db seed      # crea el usuario admin (ADMIN_EMAIL / ADMIN_PASSWORD en .env)
+npm run dev             # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🚀 Subir a internet
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Sigue la guía paso a paso en **[DESPLIEGUE.md](./DESPLIEGUE.md)** (Neon + GitHub + Vercel, gratis).
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🔑 Variables de entorno
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Ver `.env.example`. Las 3 críticas:
+- `DATABASE_URL` — conexión a Postgres (Neon).
+- `ENCRYPTION_KEY` — 32 bytes base64. **No la pierdas ni la cambies con datos guardados.**
+- `SESSION_SECRET` — firma las sesiones.
