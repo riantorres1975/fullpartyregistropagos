@@ -125,7 +125,7 @@ export default function TransferenciasPage() {
     clientes.find((c) => c.id === clienteId)?.cuentas ?? [];
 
   // Al elegir cliente, si tiene una sola cuenta la selecciona sola
-  // (y autocompleta el banco de origen con el de esa cuenta).
+  // (y autocompleta el banco de destino con el de esa cuenta).
   function elegirCliente(clienteId: string) {
     const cuentas = cuentasDelCliente(clienteId);
     const unica = cuentas.length === 1 ? cuentas[0] : null;
@@ -133,17 +133,17 @@ export default function TransferenciasPage() {
       ...f,
       clienteId,
       cuentaId: unica ? unica.id : "",
-      bancoOrigen: unica ? unica.banco : f.bancoOrigen,
+      bancoDestino: unica ? unica.banco : f.bancoDestino,
     }));
   }
 
-  // Al elegir una cuenta/tarjeta, toma su banco como Banco Origen.
+  // Al elegir una cuenta/tarjeta, toma su banco como Banco Destino.
   function elegirCuenta(cuentaId: string) {
     const cuenta = cuentasDelCliente(form.clienteId).find((c) => c.id === cuentaId);
     setForm((f) => ({
       ...f,
       cuentaId,
-      bancoOrigen: cuenta ? cuenta.banco : f.bancoOrigen,
+      bancoDestino: cuenta ? cuenta.banco : f.bancoDestino,
     }));
   }
 
@@ -770,7 +770,7 @@ function EditarModal({
                 setForm((f) => ({
                   ...f,
                   cuentaId,
-                  bancoOrigen: cuenta ? cuenta.banco : f.bancoOrigen,
+                  bancoDestino: cuenta ? cuenta.banco : f.bancoDestino,
                 }));
               }}
               disabled={!form.clienteId}
