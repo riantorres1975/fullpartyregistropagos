@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
   const sp = request.nextUrl.searchParams;
   const q = sp.get("q")?.trim();
   const estado = sp.get("estado")?.trim();
+  const clienteId = sp.get("clienteId")?.trim();
   const desde = sp.get("desde");
   const hasta = sp.get("hasta");
   const page = Math.max(1, parseInt(sp.get("page") ?? "1", 10) || 1);
@@ -30,6 +31,7 @@ export async function GET(request: NextRequest) {
 
   const where: Prisma.TransferenciaWhereInput = {};
   if (estado === "pendiente" || estado === "reflejada") where.estado = estado;
+  if (clienteId) where.clienteId = clienteId;
   if (desde || hasta) {
     where.fecha = {};
     if (desde) where.fecha.gte = new Date(desde);

@@ -65,7 +65,13 @@ export default function TransferenciasPage() {
   const [total, setTotal] = useState(0);
   const [resumen, setResumen] = useState<Resumen>({});
   const [page, setPage] = useState(1);
-  const [filtros, setFiltros] = useState({ q: "", estado: "", desde: "", hasta: "" });
+  const [filtros, setFiltros] = useState({
+    q: "",
+    estado: "",
+    clienteId: "",
+    desde: "",
+    hasta: "",
+  });
   const [form, setForm] = useState(formVacio);
   const [guardando, setGuardando] = useState(false);
   const [editar, setEditar] = useState<Transferencia | null>(null);
@@ -98,6 +104,7 @@ export default function TransferenciasPage() {
     });
     if (filtros.q) sp.set("q", filtros.q);
     if (filtros.estado) sp.set("estado", filtros.estado);
+    if (filtros.clienteId) sp.set("clienteId", filtros.clienteId);
     if (filtros.desde) sp.set("desde", filtros.desde);
     if (filtros.hasta) sp.set("hasta", filtros.hasta);
     const res = await fetch(`/api/transferencias?${sp.toString()}`);
@@ -117,13 +124,26 @@ export default function TransferenciasPage() {
   const cuentasDelCliente = (clienteId: string): CuentaOpt[] =>
     clientes.find((c) => c.id === clienteId)?.cuentas ?? [];
 
-  // Al elegir cliente, si tiene una sola cuenta la selecciona sola.
+  // Al elegir cliente, si tiene una sola cuenta la selecciona sola
+  // (y autocompleta el banco de origen con el de esa cuenta).
   function elegirCliente(clienteId: string) {
     const cuentas = cuentasDelCliente(clienteId);
+    const unica = cuentas.length === 1 ? cuentas[0] : null;
     setForm((f) => ({
       ...f,
       clienteId,
-      cuentaId: cuentas.length === 1 ? cuentas[0].id : "",
+      cuentaId: unica ? unica.id : "",
+      bancoOrigen: unica ? unica.banco : f.bancoOrigen,
+    }));
+  }
+
+  // Al elegir una cuenta/tarjeta, toma su banco como Banco Origen.
+  function elegirCuenta(cuentaId: string) {
+    const cuenta = cuentasDelCliente(form.clienteId).find((c) => c.id === cuentaId);
+    setForm((f) => ({
+      ...f,
+      cuentaId,
+      bancoOrigen: cuenta ? cuenta.banco : f.bancoOrigen,
     }));
   }
 
@@ -208,7 +228,7 @@ export default function TransferenciasPage() {
             <select
               className="input"
               value={form.cuentaId}
-              onChange={(e) => setForm({ ...form, cuentaId: e.target.value })}
+              onChange={(e) => elegirCuenta(e.target.value)}
               disabled={!form.clienteId}
             >
               {!form.clienteId ? (
@@ -339,10 +359,19 @@ export default function TransferenciasPage() {
       )}
 
       {/* Filtros */}
-      <div className="card grid gap-3 sm:grid-cols-4">
+      <div className="card grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+        <ClienteCombobox
+          clientes={opcionesCliente}
+          value={filtros.clienteId}
+          onChange={(id) => {
+            setPage(1);
+            setFiltros({ ...filtros, clienteId: id });
+          }}
+          placeholder="👤 Filtrar por cliente…"
+        />
         <input
           className="input"
-          placeholder="🔍 Cliente o referencia"
+          placeholder="🔍 Referencia"
           value={filtros.q}
           onChange={(e) => {
             setPage(1);
@@ -414,7 +443,22 @@ export default function TransferenciasPage() {
                   }`}
                 >
                   <td className="py-2">{formatFecha(t.fecha)}</td>
-                  <td>{t.cliente?.nombre ?? "—"}</td>
+                  <td>
+                    {t.cliente ? (
+                      <button
+                        onClick={() => {
+                          setPage(1);
+                          setFiltros((f) => ({ ...f, clienteId: t.cliente!.id }));
+                        }}
+                        className="text-left text-indigo-600 hover:underline dark:text-indigo-400"
+                        title="Filtrar por este cliente"
+                      >
+                        {t.cliente.nombre}
+                      </button>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
                   <td className="font-mono text-xs">
                     {t.cuenta ? (
                       <span title={t.cuenta.banco}>{t.cuenta.enmascarado}</span>
@@ -720,7 +764,15 @@ function EditarModal({
             <select
               className="input"
               value={form.cuentaId}
-              onChange={(e) => setForm({ ...form, cuentaId: e.target.value })}
+              onChange={(e) => {
+                const cuentaId = e.target.value;
+                const cuenta = cuentas.find((c) => c.id === cuentaId);
+                setForm((f) => ({
+                  ...f,
+                  cuentaId,
+                  bancoOrigen: cuenta ? cuenta.banco : f.bancoOrigen,
+                }));
+              }}
               disabled={!form.clienteId}
             >
               {!form.clienteId ? (
