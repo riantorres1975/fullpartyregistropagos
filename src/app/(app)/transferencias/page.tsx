@@ -4,7 +4,18 @@ import { useCallback, useEffect, useState } from "react";
 import { BANCOS, MONEDAS } from "@/lib/bancos";
 import { formatMonto, formatFecha } from "@/lib/format";
 
-type ClienteOpt = { id: string; nombre: string };
+type CuentaOpt = {
+  id: string;
+  banco: string;
+  tipo: string;
+  enmascarado: string;
+};
+
+type ClienteConCuentas = {
+  id: string;
+  nombre: string;
+  cuentas: CuentaOpt[];
+};
 
 type Transferencia = {
   id: string;
@@ -18,6 +29,8 @@ type Transferencia = {
   observaciones: string | null;
   clienteId: string | null;
   cliente: { id: string; nombre: string } | null;
+  cuentaId: string | null;
+  cuenta: { id: string; banco: string; enmascarado: string } | null;
 };
 
 const hoy = () => new Date().toISOString().slice(0, 10);
@@ -25,6 +38,7 @@ const hoy = () => new Date().toISOString().slice(0, 10);
 const formVacio = {
   fecha: hoy(),
   clienteId: "",
+  cuentaId: "",
   monto: "",
   moneda: "MXN",
   bancoOrigen: "",
@@ -35,7 +49,7 @@ const formVacio = {
 };
 
 export default function TransferenciasPage() {
-  const [clientes, setClientes] = useState<ClienteOpt[]>([]);
+  const [clientes, setClientes] = useState<ClienteConCuentas[]>([]);
   const [items, setItems] = useState<Transferencia[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
@@ -45,12 +59,23 @@ export default function TransferenciasPage() {
   const [editar, setEditar] = useState<Transferencia | null>(null);
   const pageSize = 25;
 
-  useEffect(() => {
-    fetch("/api/clientes")
-      .then((r) => r.json())
-      .then((data) => setClientes(data.map((c: ClienteOpt) => ({ id: c.id, nombre: c.nombre }))))
-      .catch(() => {});
+  const cargarClientes = useCallback(async () => {
+    const res = await fetch("/api/clientes");
+    if (res.ok) {
+      const data = await res.json();
+      setClientes(
+        data.map((c: ClienteConCuentas) => ({
+          id: c.id,
+          nombre: c.nombre,
+          cuentas: c.cuentas ?? [],
+        })),
+      );
+    }
   }, []);
+
+  useEffect(() => {
+    cargarClientes();
+  }, [cargarClientes]);
 
   const cargar = useCallback(async () => {
     const sp = new URLSearchParams({
@@ -73,6 +98,9 @@ export default function TransferenciasPage() {
     const t = setTimeout(cargar, 200);
     return () => clearTimeout(t);
   }, [cargar]);
+
+  const cuentasDelCliente = (clienteId: string): CuentaOpt[] =>
+    clientes.find((c) => c.id === clienteId)?.cuentas ?? [];
 
   async function crear(e: React.FormEvent) {
     e.preventDefault();
@@ -112,6 +140,7 @@ export default function TransferenciasPage() {
   }
 
   const totalPaginas = Math.max(1, Math.ceil(total / pageSize));
+  const cuentasForm = cuentasDelCliente(form.clienteId);
 
   return (
     <div className="space-y-6">
@@ -134,7 +163,9 @@ export default function TransferenciasPage() {
           <select
             className="input"
             value={form.clienteId}
-            onChange={(e) => setForm({ ...form, clienteId: e.target.value })}
+            onChange={(e) =>
+              setForm({ ...form, clienteId: e.target.value, cuentaId: "" })
+            }
           >
             <option value="">Sin cliente</option>
             {clientes.map((c) => (
@@ -142,6 +173,30 @@ export default function TransferenciasPage() {
                 {c.nombre}
               </option>
             ))}
+          </select>
+        </div>
+        <div>
+          <label className="label">Cuenta / Tarjeta</label>
+          <select
+            className="input"
+            value={form.cuentaId}
+            onChange={(e) => setForm({ ...form, cuentaId: e.target.value })}
+            disabled={!form.clienteId}
+          >
+            {!form.clienteId ? (
+              <option value="">Elige un cliente primero</option>
+            ) : cuentasForm.length === 0 ? (
+              <option value="">Este cliente no tiene cuentas guardadas</option>
+            ) : (
+              <>
+                <option value="">Sin especificar</option>
+                {cuentasForm.map((cu) => (
+                  <option key={cu.id} value={cu.id}>
+                    {cu.banco} · {cu.enmascarado}
+                  </option>
+                ))}
+              </>
+            )}
           </select>
         </div>
         <div>
@@ -287,6 +342,7 @@ export default function TransferenciasPage() {
             <tr className="border-b border-slate-200 text-left text-slate-500">
               <th className="py-2">Fecha</th>
               <th>Cliente</th>
+              <th>Cuenta / Tarjeta</th>
               <th>Monto</th>
               <th>Referencia</th>
               <th>Estado</th>
@@ -296,7 +352,7 @@ export default function TransferenciasPage() {
           <tbody>
             {items.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-8 text-center text-slate-400">
+                <td colSpan={7} className="py-8 text-center text-slate-400">
                   No hay transferencias.
                 </td>
               </tr>
@@ -310,6 +366,13 @@ export default function TransferenciasPage() {
                 >
                   <td className="py-2">{formatFecha(t.fecha)}</td>
                   <td>{t.cliente?.nombre ?? "—"}</td>
+                  <td className="font-mono text-xs">
+                    {t.cuenta ? (
+                      <span title={t.cuenta.banco}>{t.cuenta.enmascarado}</span>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
                   <td className="font-semibold">{formatMonto(t.monto, t.moneda)}</td>
                   <td className="text-slate-500">{t.referencia ?? "—"}</td>
                   <td>
@@ -385,13 +448,14 @@ function EditarModal({
   onSaved,
 }: {
   transferencia: Transferencia;
-  clientes: ClienteOpt[];
+  clientes: ClienteConCuentas[];
   onClose: () => void;
   onSaved: () => void;
 }) {
   const [form, setForm] = useState({
     fecha: transferencia.fecha.slice(0, 10),
     clienteId: transferencia.clienteId ?? "",
+    cuentaId: transferencia.cuentaId ?? "",
     monto: String(transferencia.monto),
     moneda: transferencia.moneda,
     bancoOrigen: transferencia.bancoOrigen ?? "",
@@ -401,6 +465,9 @@ function EditarModal({
     observaciones: transferencia.observaciones ?? "",
   });
   const [guardando, setGuardando] = useState(false);
+
+  const cuentas =
+    clientes.find((c) => c.id === form.clienteId)?.cuentas ?? [];
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
@@ -436,7 +503,9 @@ function EditarModal({
             <select
               className="input"
               value={form.clienteId}
-              onChange={(e) => setForm({ ...form, clienteId: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, clienteId: e.target.value, cuentaId: "" })
+              }
             >
               <option value="">Sin cliente</option>
               {clientes.map((c) => (
@@ -444,6 +513,30 @@ function EditarModal({
                   {c.nombre}
                 </option>
               ))}
+            </select>
+          </div>
+          <div className="sm:col-span-2">
+            <label className="label">Cuenta / Tarjeta</label>
+            <select
+              className="input"
+              value={form.cuentaId}
+              onChange={(e) => setForm({ ...form, cuentaId: e.target.value })}
+              disabled={!form.clienteId}
+            >
+              {!form.clienteId ? (
+                <option value="">Elige un cliente primero</option>
+              ) : cuentas.length === 0 ? (
+                <option value="">Este cliente no tiene cuentas guardadas</option>
+              ) : (
+                <>
+                  <option value="">Sin especificar</option>
+                  {cuentas.map((cu) => (
+                    <option key={cu.id} value={cu.id}>
+                      {cu.banco} · {cu.enmascarado}
+                    </option>
+                  ))}
+                </>
+              )}
             </select>
           </div>
           <div>
