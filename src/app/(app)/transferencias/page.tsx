@@ -5,6 +5,7 @@ import { BANCOS, MONEDAS } from "@/lib/bancos";
 import { formatMonto, formatFecha } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import ClienteCombobox from "@/components/ClienteCombobox";
+import BancoSelect from "@/components/BancoSelect";
 
 type CuentaOpt = {
   id: string;
@@ -250,33 +251,19 @@ export default function TransferenciasPage() {
           </div>
           <div>
             <label className="label">Banco Origen</label>
-            <select
-              className="input"
+            <BancoSelect
+              opciones={BANCOS}
               value={form.bancoOrigen}
-              onChange={(e) => setForm({ ...form, bancoOrigen: e.target.value })}
-            >
-              <option value="">Seleccionar…</option>
-              {BANCOS.map((b) => (
-                <option key={b} value={b}>
-                  {b}
-                </option>
-              ))}
-            </select>
+              onChange={(b) => setForm({ ...form, bancoOrigen: b })}
+            />
           </div>
           <div>
             <label className="label">Banco Destino</label>
-            <select
-              className="input"
+            <BancoSelect
+              opciones={BANCOS}
               value={form.bancoDestino}
-              onChange={(e) => setForm({ ...form, bancoDestino: e.target.value })}
-            >
-              <option value="">Seleccionar…</option>
-              {BANCOS.map((b) => (
-                <option key={b} value={b}>
-                  {b}
-                </option>
-              ))}
-            </select>
+              onChange={(b) => setForm({ ...form, bancoDestino: b })}
+            />
           </div>
           <div>
             <label className="label">Referencia</label>
@@ -409,8 +396,10 @@ export default function TransferenciasPage() {
               items.map((t) => (
                 <tr
                   key={t.id}
-                  className={`border-b border-slate-100 transition-colors hover:brightness-95 ${
-                    t.estado === "reflejada" ? "bg-green-50" : "bg-amber-50"
+                  className={`border-b border-slate-100 transition-colors hover:brightness-95 dark:border-slate-700 ${
+                    t.estado === "reflejada"
+                      ? "bg-green-50 dark:bg-green-900/25"
+                      : "bg-amber-50 dark:bg-amber-900/25"
                   }`}
                 >
                   <td className="py-2">{formatFecha(t.fecha)}</td>
@@ -543,7 +532,7 @@ function EditarModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <form
         onSubmit={guardar}
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl"
+        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl bg-white p-6 shadow-xl dark:bg-slate-800"
       >
         <h2 className="mb-4 text-lg font-bold">Editar transferencia</h2>
         <div className="grid gap-3 sm:grid-cols-2">

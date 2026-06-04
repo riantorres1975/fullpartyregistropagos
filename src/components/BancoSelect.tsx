@@ -2,49 +2,48 @@
 
 import { useEffect, useRef, useState } from "react";
 
-type Opt = { id: string; nombre: string };
-
-// Buscador de cliente con autocompletado: escribes y filtra al instante.
-export default function ClienteCombobox({
-  clientes,
+// Selector de banco con mini-buscador: escribes y filtra la lista.
+export default function BancoSelect({
+  opciones,
   value,
   onChange,
-  placeholder = "Buscar cliente…",
+  placeholder = "Buscar banco…",
 }: {
-  clientes: Opt[];
+  opciones: string[];
   value: string;
-  onChange: (id: string) => void;
+  onChange: (banco: string) => void;
   placeholder?: string;
 }) {
   const [texto, setTexto] = useState("");
   const [abierto, setAbierto] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  // Mantiene el texto sincronizado con el cliente seleccionado.
   useEffect(() => {
-    const sel = clientes.find((c) => c.id === value);
-    setTexto(sel ? sel.nombre : "");
-  }, [value, clientes]);
+    setTexto(value || "");
+  }, [value]);
 
-  // Cierra al hacer clic fuera.
   useEffect(() => {
     function onClickFuera(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) {
         setAbierto(false);
+        // Si lo escrito no coincide con la selección, restaura el valor.
+        setTexto(value || "");
       }
     }
     document.addEventListener("mousedown", onClickFuera);
     return () => document.removeEventListener("mousedown", onClickFuera);
-  }, []);
+  }, [value]);
 
   const filtro = texto.trim().toLowerCase();
-  const filtrados = filtro
-    ? clientes.filter((c) => c.nombre.toLowerCase().includes(filtro))
-    : clientes;
+  const coincideExacto = opciones.some((o) => o === texto);
+  const filtrados =
+    filtro && !coincideExacto
+      ? opciones.filter((o) => o.toLowerCase().includes(filtro))
+      : opciones;
 
-  function seleccionar(c: Opt) {
-    onChange(c.id);
-    setTexto(c.nombre);
+  function seleccionar(b: string) {
+    onChange(b);
+    setTexto(b);
     setAbierto(false);
   }
 
@@ -69,7 +68,7 @@ export default function ClienteCombobox({
             setTexto("");
           }}
           className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
-          aria-label="Quitar cliente"
+          aria-label="Quitar banco"
         >
           ✕
         </button>
@@ -79,16 +78,16 @@ export default function ClienteCombobox({
           {filtrados.length === 0 ? (
             <p className="px-3 py-2 text-sm text-slate-400">Sin coincidencias</p>
           ) : (
-            filtrados.map((c) => (
+            filtrados.map((b) => (
               <button
-                key={c.id}
+                key={b}
                 type="button"
-                onClick={() => seleccionar(c)}
+                onClick={() => seleccionar(b)}
                 className={`block w-full px-3 py-2 text-left text-sm hover:bg-indigo-50 dark:hover:bg-slate-700 ${
-                  c.id === value ? "bg-indigo-50 font-medium dark:bg-slate-700" : ""
+                  b === value ? "bg-indigo-50 font-medium dark:bg-slate-700" : ""
                 }`}
               >
-                {c.nombre}
+                {b}
               </button>
             ))
           )}

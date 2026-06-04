@@ -10,6 +10,7 @@ type Dashboard = {
   totalTransferencias: number;
   totalClientes: number;
   totalesPorMoneda: Record<string, { pendiente: number; reflejada: number }>;
+  porMes: { label: string; pendiente: number; reflejada: number }[];
   ultimas: {
     id: string;
     fecha: string;
@@ -59,7 +60,7 @@ export default function DashboardPage() {
             {Object.entries(data.totalesPorMoneda).map(([moneda, t]) => (
               <div
                 key={moneda}
-                className="flex flex-wrap items-center justify-between rounded-lg bg-slate-50 px-4 py-2 text-sm"
+                className="flex flex-wrap items-center justify-between rounded-lg bg-slate-50 px-4 py-2 text-sm dark:bg-slate-700/50"
               >
                 <span className="font-semibold">{moneda}</span>
                 <span className="text-amber-600">
@@ -75,11 +76,16 @@ export default function DashboardPage() {
       </div>
 
       <div className="card">
+        <h2 className="mb-4 font-semibold">Transferencias por mes</h2>
+        <GraficaMeses datos={data.porMes} />
+      </div>
+
+      <div className="card">
         <h2 className="mb-3 font-semibold">Últimas transferencias</h2>
         {data.ultimas.length === 0 ? (
           <p className="text-sm text-slate-400">Todavía no registras transferencias.</p>
         ) : (
-          <ul className="divide-y divide-slate-100">
+          <ul className="divide-y divide-slate-100 dark:divide-slate-700">
             {data.ultimas.map((t) => (
               <li key={t.id} className="flex items-center justify-between py-2 text-sm">
                 <div>
@@ -118,10 +124,71 @@ function Stat({
 }) {
   return (
     <div className="card">
-      <p className="text-sm text-slate-500">
+      <p className="text-sm text-slate-500 dark:text-slate-400">
         {emoji} {label}
       </p>
       <p className={`mt-1 text-3xl font-bold ${color}`}>{value}</p>
+    </div>
+  );
+}
+
+function GraficaMeses({
+  datos,
+}: {
+  datos: { label: string; pendiente: number; reflejada: number }[];
+}) {
+  const max = Math.max(1, ...datos.map((d) => d.pendiente + d.reflejada));
+  const sinDatos = datos.every((d) => d.pendiente + d.reflejada === 0);
+
+  if (sinDatos) {
+    return (
+      <p className="text-sm text-slate-400">
+        Aún no hay transferencias en los últimos 6 meses.
+      </p>
+    );
+  }
+
+  return (
+    <div>
+      <div className="flex items-end justify-between gap-2" style={{ height: 160 }}>
+        {datos.map((d) => {
+          const total = d.pendiente + d.reflejada;
+          const hPend = (d.pendiente / max) * 140;
+          const hRef = (d.reflejada / max) * 140;
+          return (
+            <div key={d.label} className="flex flex-1 flex-col items-center justify-end">
+              <span className="mb-1 text-xs font-medium text-slate-500 dark:text-slate-400">
+                {total > 0 ? total : ""}
+              </span>
+              <div
+                className="flex w-full max-w-[42px] flex-col-reverse overflow-hidden rounded-md"
+                title={`${d.label}: ${d.pendiente} pendiente, ${d.reflejada} reflejada`}
+              >
+                <div className="bg-amber-400" style={{ height: hPend }} />
+                <div className="bg-green-500" style={{ height: hRef }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-2 flex justify-between gap-2">
+        {datos.map((d) => (
+          <span
+            key={d.label}
+            className="flex-1 text-center text-xs capitalize text-slate-500 dark:text-slate-400"
+          >
+            {d.label}
+          </span>
+        ))}
+      </div>
+      <div className="mt-4 flex justify-center gap-4 text-xs text-slate-500 dark:text-slate-400">
+        <span className="flex items-center gap-1">
+          <span className="inline-block h-3 w-3 rounded-sm bg-amber-400" /> Pendiente
+        </span>
+        <span className="flex items-center gap-1">
+          <span className="inline-block h-3 w-3 rounded-sm bg-green-500" /> Reflejada
+        </span>
+      </div>
     </div>
   );
 }

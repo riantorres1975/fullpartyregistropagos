@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import ThemeToggle from "@/components/ThemeToggle";
 
 const links = [
   { href: "/", label: "🏠 Inicio" },
@@ -47,6 +48,9 @@ export default function Nav({ nombre }: { nombre: string }) {
           })}
           <span className="ml-3 hidden text-sm opacity-90 sm:inline">
             👋 {nombre}
+          </span>
+          <span className="ml-2">
+            <ThemeToggle />
           </span>
           <button
             onClick={logout}

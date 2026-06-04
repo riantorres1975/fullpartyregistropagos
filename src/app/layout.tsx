@@ -20,7 +20,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" className="h-full antialiased">
-      <body className="min-h-full flex flex-col bg-slate-100 text-slate-800">
+      <body className="min-h-full flex flex-col bg-slate-100 text-slate-800 dark:bg-slate-900 dark:text-slate-100">
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "try{var t=localStorage.getItem('tema');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.classList.add('dark')}}catch(e){}",
+          }}
+        />
         {children}
       </body>
     </html>

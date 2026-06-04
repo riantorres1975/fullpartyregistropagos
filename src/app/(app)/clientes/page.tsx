@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { BANCOS } from "@/lib/bancos";
 import { toast } from "@/lib/toast";
+import BancoSelect from "@/components/BancoSelect";
 
 type Cuenta = {
   id: string;
@@ -157,7 +158,7 @@ function ClienteCard({
       </div>
 
       {abierto && (
-        <div className="mt-4 space-y-3 border-t border-slate-100 pt-4">
+        <div className="mt-4 space-y-3 border-t border-slate-100 pt-4 dark:border-slate-700">
           {cliente.cuentas.map((cuenta) => (
             <CuentaRow key={cuenta.id} cuenta={cuenta} onChange={onChange} />
           ))}
@@ -188,7 +189,7 @@ function CuentaRow({ cuenta, onChange }: { cuenta: Cuenta; onChange: () => void 
   }
 
   return (
-    <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm">
+    <div className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm dark:bg-slate-700/50">
       <div>
         <p className="font-medium">
           {cuenta.banco}{" "}
@@ -248,21 +249,14 @@ function NuevaCuenta({
   return (
     <form
       onSubmit={agregar}
-      className="grid gap-2 rounded-lg border border-dashed border-slate-300 p-3 sm:grid-cols-5"
+      className="grid gap-2 rounded-lg border border-dashed border-slate-300 p-3 sm:grid-cols-5 dark:border-slate-600"
     >
-      <select
-        className="input"
+      <BancoSelect
+        opciones={BANCOS}
         value={form.banco}
-        onChange={(e) => setForm({ ...form, banco: e.target.value })}
-        required
-      >
-        <option value="">Banco…</option>
-        {BANCOS.map((b) => (
-          <option key={b} value={b}>
-            {b}
-          </option>
-        ))}
-      </select>
+        onChange={(b) => setForm({ ...form, banco: b })}
+        placeholder="Banco…"
+      />
       <select
         className="input"
         value={form.tipo}

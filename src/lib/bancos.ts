@@ -9,7 +9,7 @@ export const BANCOS = [
   "Banco Azteca",
   "Afirme",
   "Banregio",
-  "Bajío",
+  "BanBajío",
   "Invex",
   "Mifel",
   "Actinver",
@@ -19,7 +19,26 @@ export const BANCOS = [
   "Nu (Nubank)",
   "Mercado Pago",
   "Klar",
-];
+  // Fintech / tiendas
+  "Saldazo (OXXO)",
+  "Spin by OXXO",
+  "Spin Premia",
+  "BanCoppel",
+  "Hey Banco",
+  "Ualá",
+  "STP",
+  "CIBanco",
+  "Banca Mifel",
+  "Multiva",
+  "Compartamos Banco",
+  "Banco Sabadell",
+  "Banco Famsa",
+  "RappiPay",
+  "Stori",
+  "Cuenca",
+  "Albo",
+  "Fondeadora",
+].sort((a, b) => a.localeCompare(b, "es"));
 
 export const MONEDAS = [
   { value: "MXN", label: "MXN - Peso Mexicano" },
