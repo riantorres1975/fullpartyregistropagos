@@ -1,5 +1,3 @@
-import { BANCOS } from "@/lib/bancos";
-
 export type DatosRecibo = {
   monto?: number;
   referencia?: string;
@@ -8,8 +6,8 @@ export type DatosRecibo = {
 };
 
 // Lee el texto de una imagen de recibo (OCR en el navegador) y trata de
-// detectar monto, número de referencia y banco. Todo es una sugerencia:
-// el usuario puede corregir cualquier campo.
+// detectar monto, número de referencia y banco de origen. Todo es una
+// sugerencia: el usuario puede corregir cualquier campo.
 export async function analizarRecibo(
   dataUrl: string,
   onProgreso?: (p: number) => void,
@@ -32,67 +30,125 @@ export async function analizarRecibo(
   };
 }
 
-function aNumero(s: string): number {
-  return parseFloat(s.replace(/,/g, ""));
+function aNumero(raw: string): number | null {
+  const n = parseFloat(raw.replace(/\s/g, "").replace(/,/g, ""));
+  return isNaN(n) ? null : n;
 }
 
-const NUM = /\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?|\d+\.\d{2}|\d+/g;
-
+// --- MONTO ---------------------------------------------------------------
 function detectarMonto(texto: string): number | undefined {
   const lineas = texto.split(/\n+/);
-  const claves = /(monto|importe|total|cantidad|pago|enviad|transfer)/i;
+  const clave = /(monto|importe|total|cantidad|transferid|envi)/i;
+  const ignorar = /(comisi|saldo|disponible)/i;
 
-  const candidatos: number[] = [];
+  const conClave: number[] = [];
+  const todos: number[] = [];
+
   for (const linea of lineas) {
-    if (!claves.test(linea)) continue;
-    const matches = linea.match(NUM);
-    if (matches) {
-      for (const m of matches) {
-        const n = aNumero(m);
-        if (!isNaN(n) && n > 0) candidatos.push(n);
-      }
+    if (ignorar.test(linea)) continue;
+    const montos: number[] = [];
+    for (const m of linea.matchAll(/\$\s?([\d][\d.,]*)/g)) {
+      const n = aNumero(m[1]);
+      if (n !== null) montos.push(n);
     }
+    for (const m of linea.matchAll(/([\d][\d.,]*)\s?mxn\b/gi)) {
+      const n = aNumero(m[1]);
+      if (n !== null) montos.push(n);
+    }
+    if (!montos.length) continue;
+    todos.push(...montos);
+    if (clave.test(linea)) conClave.push(...montos);
   }
-  if (candidatos.length) return Math.max(...candidatos);
 
-  // Respaldo: el número con 2 decimales más grande de todo el texto.
-  const conDecimales = (texto.match(/\d{1,3}(?:,\d{3})*\.\d{2}/g) || []).map(aNumero);
-  if (conDecimales.length) return Math.max(...conDecimales);
+  const pool = (conClave.length ? conClave : todos).filter((n) => n > 0);
+  return pool.length ? Math.max(...pool) : undefined;
+}
 
-  return undefined;
+// --- REFERENCIA ----------------------------------------------------------
+function extraerToken(linea: string): string | undefined {
+  const limpio = linea.replace(/[#:]/g, " ");
+  const toks = limpio.match(/[A-Za-z0-9]{4,}/g) || [];
+  const conDigito = toks
+    .filter((t) => /\d/.test(t))
+    .sort((a, b) => b.length - a.length);
+  return conDigito[0];
 }
 
 function detectarReferencia(texto: string): string | undefined {
   const lineas = texto.split(/\n+/);
-  const claves =
-    /(referencia|folio|rastreo|autoriz|operaci|clave|n[uú]mero|no\.?|num\.?)/i;
+  // En orden de prioridad
+  const orden = [
+    /referencia/i,
+    /folio/i,
+    /autoriz/i,
+    /clave de rastreo|rastreo/i,
+    /id de movimiento|movimiento/i,
+    /operaci/i,
+  ];
 
-  for (const linea of lineas) {
-    if (!claves.test(linea)) continue;
-    // secuencia de 4+ dígitos (o alfanumérica larga) después de la palabra clave
-    const m = linea.match(/([A-Z0-9]{4,})\b/g);
-    if (m) {
-      // prioriza la secuencia más larga
-      const mejor = m.sort((a, b) => b.length - a.length)[0];
-      if (/\d/.test(mejor)) return mejor;
+  for (const kw of orden) {
+    for (let i = 0; i < lineas.length; i++) {
+      if (!kw.test(lineas[i])) continue;
+      const val = extraerToken(lineas[i]) || extraerToken(lineas[i + 1] || "");
+      if (val) return val;
     }
   }
 
-  // Respaldo: la secuencia de dígitos más larga (>= 6) del texto.
+  // Respaldo: la secuencia de dígitos más larga (>= 6).
   const digitos = (texto.match(/\d{6,}/g) || []).sort((a, b) => b.length - a.length);
   return digitos[0];
 }
 
+// --- BANCO DE ORIGEN -----------------------------------------------------
+const ALIAS: [RegExp, string][] = [
+  [/banamex/, "Citibanamex"],
+  [/bbva|bancomer/, "BBVA México"],
+  [/santander/, "Santander"],
+  [/banorte/, "Banorte"],
+  [/hsbc/, "HSBC"],
+  [/scotia/, "Scotiabank"],
+  [/inbursa/, "Inbursa"],
+  [/azteca/, "Banco Azteca"],
+  [/mercado\s?pago/, "Mercado Pago"],
+  [/spin|oxxo/, "Spin by OXXO"],
+  [/coppel/, "BanCoppel"],
+  [/nubank|\bnu\b/, "Nu (Nubank)"],
+  [/klar/, "Klar"],
+  [/ual[aá]/, "Ualá"],
+  [/stori/, "Stori"],
+  [/cuenca/, "Cuenca"],
+  [/\balbo\b/, "Albo"],
+  [/hey\s?banco/, "Hey Banco"],
+  [/banregio/, "Banregio"],
+  [/baj[ií]o/, "BanBajío"],
+  [/banjercito/, "Banjercito"],
+  [/bienestar/, "Banco del Bienestar"],
+  [/rappi/, "RappiPay"],
+  [/compartamos/, "Compartamos Banco"],
+  [/multiva/, "Multiva"],
+  [/cibanco/, "CIBanco"],
+  [/famsa/, "Banco Famsa"],
+  [/sabadell/, "Banco Sabadell"],
+  [/fondeadora/, "Fondeadora"],
+  [/afirme/, "Afirme"],
+  [/invex/, "Invex"],
+  [/mifel/, "Mifel"],
+  [/actinver/, "Actinver"],
+  [/intercam/, "Intercam"],
+  [/\bstp\b/, "STP"],
+  [/somos/, "Somos"],
+];
+
 function detectarBanco(texto: string): string | undefined {
-  const t = texto.toLowerCase();
-  for (const banco of BANCOS) {
-    // usa la primera palabra significativa (ej. "BBVA", "Santander", "Saldazo")
-    const token = banco
-      .replace(/\(.*?\)/g, "")
-      .trim()
-      .split(/\s+/)[0]
-      .toLowerCase();
-    if (token.length >= 3 && t.includes(token)) return banco;
+  const lower = texto.toLowerCase();
+
+  // Corta el texto antes de la sección de destino/beneficiario, para no
+  // confundir el banco de ORIGEN con el de destino (casi siempre Spin).
+  const corte = lower.search(/\b(destino|para|beneficiari)\b/);
+  const origenTxt = corte >= 0 ? lower.slice(0, corte) : lower;
+
+  for (const [re, nombre] of ALIAS) {
+    if (re.test(origenTxt)) return nombre;
   }
   return undefined;
 }
