@@ -102,7 +102,7 @@ function detectarReferencia(texto: string): string | undefined {
 // --- BANCO DE ORIGEN -----------------------------------------------------
 const ALIAS: [RegExp, string][] = [
   [/banamex/, "Citibanamex"],
-  [/bbva|bancomer/, "BBVA México"],
+  [/bbva|bancomer|dimo/, "BBVA México"],
   [/santander/, "Santander"],
   [/banorte/, "Banorte"],
   [/hsbc/, "HSBC"],
