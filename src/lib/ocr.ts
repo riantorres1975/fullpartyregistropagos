@@ -136,7 +136,7 @@ const ALIAS: [RegExp, string][] = [
   [/actinver/, "Actinver"],
   [/intercam/, "Intercam"],
   [/\bstp\b/, "STP"],
-  [/somos/, "Somos"],
+  [/somos/, "Banco Azteca"],
 ];
 
 function detectarBanco(texto: string): string | undefined {

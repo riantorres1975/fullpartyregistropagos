@@ -38,7 +38,6 @@ export const BANCOS = [
   "Cuenca",
   "Albo",
   "Fondeadora",
-  "Somos",
 ].sort((a, b) => a.localeCompare(b, "es"));
 
 export const MONEDAS = [
