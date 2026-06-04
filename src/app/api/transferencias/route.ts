@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
     ];
   }
 
-  const [total, items] = await Promise.all([
+  const [total, items, agregado] = await Promise.all([
     prisma.transferencia.count({ where }),
     prisma.transferencia.findMany({
       where,
@@ -53,12 +53,33 @@ export async function GET(request: NextRequest) {
         cuenta: { select: { id: true, banco: true, tipo: true, last4: true } },
       },
     }),
+    // Totales del listado filtrado completo (no solo la página actual)
+    prisma.transferencia.groupBy({
+      by: ["moneda", "estado"],
+      where,
+      _sum: { monto: true },
+      _count: true,
+    }),
   ]);
+
+  // Arma el resumen por moneda separando pendiente/reflejada.
+  const resumen: Record<
+    string,
+    { pendiente: number; reflejada: number; total: number }
+  > = {};
+  for (const row of agregado) {
+    const m = (resumen[row.moneda] ??= { pendiente: 0, reflejada: 0, total: 0 });
+    const suma = row._sum.monto ?? 0;
+    if (row.estado === "pendiente") m.pendiente += suma;
+    if (row.estado === "reflejada") m.reflejada += suma;
+    m.total += suma;
+  }
 
   return NextResponse.json({
     total,
     page,
     pageSize,
+    resumen,
     items: items.map((t) => ({
       id: t.id,
       fecha: t.fecha,

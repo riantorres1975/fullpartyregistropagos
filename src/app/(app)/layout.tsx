@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import Nav from "@/components/Nav";
+import { Toaster } from "@/lib/toast";
 
 export default async function AppLayout({
   children,
@@ -19,6 +20,7 @@ export default async function AppLayout({
       <footer className="py-6 text-center text-xs text-slate-400">
         🔒 Datos cifrados · Full Party 🎈
       </footer>
+      <Toaster />
     </>
   );
 }

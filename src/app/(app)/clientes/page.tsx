@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { BANCOS } from "@/lib/bancos";
+import { toast } from "@/lib/toast";
 
 type Cuenta = {
   id: string;
@@ -50,6 +51,9 @@ export default function ClientesPage() {
     if (res.ok) {
       setNuevo({ nombre: "", alias: "", notas: "" });
       cargar();
+      toast("✅ Cliente agregado");
+    } else {
+      toast("No se pudo agregar el cliente", "error");
     }
   }
 
@@ -57,6 +61,7 @@ export default function ClientesPage() {
     if (!confirm("¿Eliminar este cliente y sus cuentas guardadas?")) return;
     await fetch(`/api/clientes/${id}`, { method: "DELETE" });
     cargar();
+    toast("🗑️ Cliente eliminado");
   }
 
   return (
@@ -179,6 +184,7 @@ function CuentaRow({ cuenta, onChange }: { cuenta: Cuenta; onChange: () => void 
     if (!confirm("¿Eliminar esta cuenta?")) return;
     await fetch(`/api/cuentas/${cuenta.id}`, { method: "DELETE" });
     onChange();
+    toast("🗑️ Cuenta eliminada");
   }
 
   return (
@@ -233,6 +239,9 @@ function NuevaCuenta({
     if (res.ok) {
       setForm({ banco: "", tipo: "cuenta", titular: "", numero: "" });
       onChange();
+      toast("✅ Cuenta agregada y cifrada");
+    } else {
+      toast("No se pudo agregar la cuenta", "error");
     }
   }
 

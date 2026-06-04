@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { BANCOS, MONEDAS } from "@/lib/bancos";
 import { formatMonto, formatFecha } from "@/lib/format";
+import { toast } from "@/lib/toast";
+import ClienteCombobox from "@/components/ClienteCombobox";
 
 type CuentaOpt = {
   id: string;
@@ -33,6 +35,11 @@ type Transferencia = {
   cuenta: { id: string; banco: string; enmascarado: string } | null;
 };
 
+type Resumen = Record<
+  string,
+  { pendiente: number; reflejada: number; total: number }
+>;
+
 const hoy = () => new Date().toISOString().slice(0, 10);
 
 const formVacio = {
@@ -52,11 +59,13 @@ export default function TransferenciasPage() {
   const [clientes, setClientes] = useState<ClienteConCuentas[]>([]);
   const [items, setItems] = useState<Transferencia[]>([]);
   const [total, setTotal] = useState(0);
+  const [resumen, setResumen] = useState<Resumen>({});
   const [page, setPage] = useState(1);
   const [filtros, setFiltros] = useState({ q: "", estado: "", desde: "", hasta: "" });
   const [form, setForm] = useState(formVacio);
   const [guardando, setGuardando] = useState(false);
   const [editar, setEditar] = useState<Transferencia | null>(null);
+  const [mostrarForm, setMostrarForm] = useState(true);
   const pageSize = 25;
 
   const cargarClientes = useCallback(async () => {
@@ -91,6 +100,7 @@ export default function TransferenciasPage() {
       const data = await res.json();
       setItems(data.items);
       setTotal(data.total);
+      setResumen(data.resumen ?? {});
     }
   }, [page, filtros]);
 
@@ -101,6 +111,16 @@ export default function TransferenciasPage() {
 
   const cuentasDelCliente = (clienteId: string): CuentaOpt[] =>
     clientes.find((c) => c.id === clienteId)?.cuentas ?? [];
+
+  // Al elegir cliente, si tiene una sola cuenta la selecciona sola.
+  function elegirCliente(clienteId: string) {
+    const cuentas = cuentasDelCliente(clienteId);
+    setForm((f) => ({
+      ...f,
+      clienteId,
+      cuentaId: cuentas.length === 1 ? cuentas[0].id : "",
+    }));
+  }
 
   async function crear(e: React.FormEvent) {
     e.preventDefault();
@@ -116,180 +136,209 @@ export default function TransferenciasPage() {
       setForm({ ...formVacio, fecha: hoy() });
       setPage(1);
       cargar();
+      toast("✅ Transferencia guardada");
     } else {
       const d = await res.json();
-      alert(d.error ?? "Error al guardar");
+      toast(d.error ?? "Error al guardar", "error");
     }
   }
 
   async function toggleEstado(t: Transferencia) {
+    const nuevo = t.estado === "pendiente" ? "reflejada" : "pendiente";
     await fetch(`/api/transferencias/${t.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        estado: t.estado === "pendiente" ? "reflejada" : "pendiente",
-      }),
+      body: JSON.stringify({ estado: nuevo }),
     });
     cargar();
+    toast(nuevo === "reflejada" ? "✅ Marcada como reflejada" : "⏳ Marcada como pendiente");
   }
 
   async function eliminar(id: string) {
     if (!confirm("¿Eliminar esta transferencia?")) return;
     await fetch(`/api/transferencias/${id}`, { method: "DELETE" });
     cargar();
+    toast("🗑️ Transferencia eliminada");
   }
 
   const totalPaginas = Math.max(1, Math.ceil(total / pageSize));
   const cuentasForm = cuentasDelCliente(form.clienteId);
+  const opcionesCliente = clientes.map((c) => ({ id: c.id, nombre: c.nombre }));
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Transferencias</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Transferencias</h1>
+        <button
+          onClick={() => setMostrarForm((v) => !v)}
+          className="btn-primary"
+        >
+          {mostrarForm ? "✕ Ocultar formulario" : "➕ Nueva transferencia"}
+        </button>
+      </div>
 
       {/* Formulario de registro */}
-      <form onSubmit={crear} className="card grid gap-4 sm:grid-cols-3">
-        <div>
-          <label className="label">Fecha *</label>
-          <input
-            type="date"
-            className="input"
-            value={form.fecha}
-            onChange={(e) => setForm({ ...form, fecha: e.target.value })}
-            required
-          />
+      {mostrarForm && (
+        <form onSubmit={crear} className="card grid gap-4 sm:grid-cols-3">
+          <div>
+            <label className="label">Fecha *</label>
+            <input
+              type="date"
+              className="input"
+              value={form.fecha}
+              onChange={(e) => setForm({ ...form, fecha: e.target.value })}
+              required
+            />
+          </div>
+          <div>
+            <label className="label">Cliente</label>
+            <ClienteCombobox
+              clientes={opcionesCliente}
+              value={form.clienteId}
+              onChange={elegirCliente}
+            />
+          </div>
+          <div>
+            <label className="label">Cuenta / Tarjeta</label>
+            <select
+              className="input"
+              value={form.cuentaId}
+              onChange={(e) => setForm({ ...form, cuentaId: e.target.value })}
+              disabled={!form.clienteId}
+            >
+              {!form.clienteId ? (
+                <option value="">Elige un cliente primero</option>
+              ) : cuentasForm.length === 0 ? (
+                <option value="">Este cliente no tiene cuentas guardadas</option>
+              ) : (
+                <>
+                  <option value="">Sin especificar</option>
+                  {cuentasForm.map((cu) => (
+                    <option key={cu.id} value={cu.id}>
+                      {cu.banco} · {cu.enmascarado}
+                    </option>
+                  ))}
+                </>
+              )}
+            </select>
+          </div>
+          <div>
+            <label className="label">Monto *</label>
+            <input
+              type="number"
+              step="0.01"
+              className="input"
+              value={form.monto}
+              onChange={(e) => setForm({ ...form, monto: e.target.value })}
+              placeholder="0.00"
+              required
+            />
+          </div>
+          <div>
+            <label className="label">Moneda</label>
+            <select
+              className="input"
+              value={form.moneda}
+              onChange={(e) => setForm({ ...form, moneda: e.target.value })}
+            >
+              {MONEDAS.map((m) => (
+                <option key={m.value} value={m.value}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="label">Banco Origen</label>
+            <select
+              className="input"
+              value={form.bancoOrigen}
+              onChange={(e) => setForm({ ...form, bancoOrigen: e.target.value })}
+            >
+              <option value="">Seleccionar…</option>
+              {BANCOS.map((b) => (
+                <option key={b} value={b}>
+                  {b}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="label">Banco Destino</label>
+            <select
+              className="input"
+              value={form.bancoDestino}
+              onChange={(e) => setForm({ ...form, bancoDestino: e.target.value })}
+            >
+              <option value="">Seleccionar…</option>
+              {BANCOS.map((b) => (
+                <option key={b} value={b}>
+                  {b}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="label">Referencia</label>
+            <input
+              className="input"
+              value={form.referencia}
+              onChange={(e) => setForm({ ...form, referencia: e.target.value })}
+              placeholder="N° de referencia"
+            />
+          </div>
+          <div>
+            <label className="label">Estado</label>
+            <select
+              className="input"
+              value={form.estado}
+              onChange={(e) => setForm({ ...form, estado: e.target.value })}
+            >
+              <option value="pendiente">Pendiente</option>
+              <option value="reflejada">Reflejada</option>
+            </select>
+          </div>
+          <div className="sm:col-span-3">
+            <label className="label">Observaciones</label>
+            <textarea
+              className="input"
+              rows={2}
+              value={form.observaciones}
+              onChange={(e) => setForm({ ...form, observaciones: e.target.value })}
+            />
+          </div>
+          <div className="sm:col-span-3">
+            <button className="btn-primary" disabled={guardando}>
+              {guardando ? "Guardando…" : "✅ Guardar transferencia"}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* Resumen de totales del listado filtrado */}
+      {Object.keys(resumen).length > 0 && (
+        <div className="flex flex-wrap gap-3">
+          {Object.entries(resumen).map(([moneda, r]) => (
+            <div
+              key={moneda}
+              className="card flex-1 min-w-[200px] !p-4"
+            >
+              <p className="text-xs font-semibold text-slate-400">{moneda}</p>
+              <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                <span className="text-amber-600">
+                  ⏳ {formatMonto(r.pendiente, moneda)}
+                </span>
+                <span className="text-green-600">
+                  ✅ {formatMonto(r.reflejada, moneda)}
+                </span>
+                <span className="font-semibold text-slate-700">
+                  Σ {formatMonto(r.total, moneda)}
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
-        <div>
-          <label className="label">Cliente</label>
-          <select
-            className="input"
-            value={form.clienteId}
-            onChange={(e) =>
-              setForm({ ...form, clienteId: e.target.value, cuentaId: "" })
-            }
-          >
-            <option value="">Sin cliente</option>
-            {clientes.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.nombre}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="label">Cuenta / Tarjeta</label>
-          <select
-            className="input"
-            value={form.cuentaId}
-            onChange={(e) => setForm({ ...form, cuentaId: e.target.value })}
-            disabled={!form.clienteId}
-          >
-            {!form.clienteId ? (
-              <option value="">Elige un cliente primero</option>
-            ) : cuentasForm.length === 0 ? (
-              <option value="">Este cliente no tiene cuentas guardadas</option>
-            ) : (
-              <>
-                <option value="">Sin especificar</option>
-                {cuentasForm.map((cu) => (
-                  <option key={cu.id} value={cu.id}>
-                    {cu.banco} · {cu.enmascarado}
-                  </option>
-                ))}
-              </>
-            )}
-          </select>
-        </div>
-        <div>
-          <label className="label">Monto *</label>
-          <input
-            type="number"
-            step="0.01"
-            className="input"
-            value={form.monto}
-            onChange={(e) => setForm({ ...form, monto: e.target.value })}
-            placeholder="0.00"
-            required
-          />
-        </div>
-        <div>
-          <label className="label">Moneda</label>
-          <select
-            className="input"
-            value={form.moneda}
-            onChange={(e) => setForm({ ...form, moneda: e.target.value })}
-          >
-            {MONEDAS.map((m) => (
-              <option key={m.value} value={m.value}>
-                {m.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="label">Banco Origen</label>
-          <select
-            className="input"
-            value={form.bancoOrigen}
-            onChange={(e) => setForm({ ...form, bancoOrigen: e.target.value })}
-          >
-            <option value="">Seleccionar…</option>
-            {BANCOS.map((b) => (
-              <option key={b} value={b}>
-                {b}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="label">Banco Destino</label>
-          <select
-            className="input"
-            value={form.bancoDestino}
-            onChange={(e) => setForm({ ...form, bancoDestino: e.target.value })}
-          >
-            <option value="">Seleccionar…</option>
-            {BANCOS.map((b) => (
-              <option key={b} value={b}>
-                {b}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div>
-          <label className="label">Referencia</label>
-          <input
-            className="input"
-            value={form.referencia}
-            onChange={(e) => setForm({ ...form, referencia: e.target.value })}
-            placeholder="N° de referencia"
-          />
-        </div>
-        <div>
-          <label className="label">Estado</label>
-          <select
-            className="input"
-            value={form.estado}
-            onChange={(e) => setForm({ ...form, estado: e.target.value })}
-          >
-            <option value="pendiente">Pendiente</option>
-            <option value="reflejada">Reflejada</option>
-          </select>
-        </div>
-        <div className="sm:col-span-3">
-          <label className="label">Observaciones</label>
-          <textarea
-            className="input"
-            rows={2}
-            value={form.observaciones}
-            onChange={(e) => setForm({ ...form, observaciones: e.target.value })}
-          />
-        </div>
-        <div className="sm:col-span-3">
-          <button className="btn-primary" disabled={guardando}>
-            {guardando ? "Guardando…" : "✅ Guardar transferencia"}
-          </button>
-        </div>
-      </form>
+      )}
 
       {/* Filtros */}
       <div className="card grid gap-3 sm:grid-cols-4">
@@ -360,7 +409,7 @@ export default function TransferenciasPage() {
               items.map((t) => (
                 <tr
                   key={t.id}
-                  className={`border-b border-slate-100 ${
+                  className={`border-b border-slate-100 transition-colors hover:brightness-95 ${
                     t.estado === "reflejada" ? "bg-green-50" : "bg-amber-50"
                   }`}
                 >
@@ -378,7 +427,12 @@ export default function TransferenciasPage() {
                   <td>
                     <button
                       onClick={() => toggleEstado(t)}
-                      className="text-xs font-medium underline"
+                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                        t.estado === "reflejada"
+                          ? "bg-green-200 text-green-800"
+                          : "bg-amber-200 text-amber-800"
+                      }`}
+                      title="Clic para cambiar el estado"
                     >
                       {t.estado === "reflejada" ? "✅ Reflejada" : "⏳ Pendiente"}
                     </button>
@@ -387,12 +441,14 @@ export default function TransferenciasPage() {
                     <button
                       onClick={() => setEditar(t)}
                       className="mr-1 rounded px-2 py-1 hover:bg-slate-200"
+                      title="Editar"
                     >
                       ✏️
                     </button>
                     <button
                       onClick={() => eliminar(t.id)}
                       className="rounded px-2 py-1 hover:bg-red-100"
+                      title="Eliminar"
                     >
                       🗑️
                     </button>
@@ -434,6 +490,7 @@ export default function TransferenciasPage() {
           onSaved={() => {
             setEditar(null);
             cargar();
+            toast("✅ Cambios guardados");
           }}
         />
       )}
@@ -468,6 +525,7 @@ function EditarModal({
 
   const cuentas =
     clientes.find((c) => c.id === form.clienteId)?.cuentas ?? [];
+  const opcionesCliente = clientes.map((c) => ({ id: c.id, nombre: c.nombre }));
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
@@ -500,20 +558,18 @@ function EditarModal({
           </div>
           <div>
             <label className="label">Cliente</label>
-            <select
-              className="input"
+            <ClienteCombobox
+              clientes={opcionesCliente}
               value={form.clienteId}
-              onChange={(e) =>
-                setForm({ ...form, clienteId: e.target.value, cuentaId: "" })
-              }
-            >
-              <option value="">Sin cliente</option>
-              {clientes.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.nombre}
-                </option>
-              ))}
-            </select>
+              onChange={(id) => {
+                const cs = clientes.find((c) => c.id === id)?.cuentas ?? [];
+                setForm((f) => ({
+                  ...f,
+                  clienteId: id,
+                  cuentaId: cs.length === 1 ? cs[0].id : "",
+                }));
+              }}
+            />
           </div>
           <div className="sm:col-span-2">
             <label className="label">Cuenta / Tarjeta</label>
