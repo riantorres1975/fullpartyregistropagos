@@ -6,6 +6,7 @@ import { formatMonto, formatFecha } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import ClienteCombobox from "@/components/ClienteCombobox";
 import BancoSelect from "@/components/BancoSelect";
+import { comprimirImagen } from "@/lib/imagen";
 
 type CuentaOpt = {
   id: string;
@@ -30,6 +31,7 @@ type Transferencia = {
   bancoOrigen: string | null;
   bancoDestino: string | null;
   observaciones: string | null;
+  tieneComprobante: boolean;
   clienteId: string | null;
   cliente: { id: string; nombre: string } | null;
   cuentaId: string | null;
@@ -54,6 +56,7 @@ const formVacio = {
   referencia: "",
   estado: "pendiente",
   observaciones: "",
+  comprobante: "",
 };
 
 export default function TransferenciasPage() {
@@ -66,6 +69,7 @@ export default function TransferenciasPage() {
   const [form, setForm] = useState(formVacio);
   const [guardando, setGuardando] = useState(false);
   const [editar, setEditar] = useState<Transferencia | null>(null);
+  const [verComprobante, setVerComprobante] = useState<string | null>(null);
   const [mostrarForm, setMostrarForm] = useState(true);
   const pageSize = 25;
 
@@ -285,13 +289,20 @@ export default function TransferenciasPage() {
               <option value="reflejada">Reflejada</option>
             </select>
           </div>
-          <div className="sm:col-span-3">
+          <div className="sm:col-span-2">
             <label className="label">Observaciones</label>
             <textarea
               className="input"
               rows={2}
               value={form.observaciones}
               onChange={(e) => setForm({ ...form, observaciones: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="label">📎 Comprobante (foto)</label>
+            <ComprobanteCampo
+              value={form.comprobante}
+              onChange={(v) => setForm({ ...form, comprobante: v })}
             />
           </div>
           <div className="sm:col-span-3">
@@ -427,9 +438,18 @@ export default function TransferenciasPage() {
                     </button>
                   </td>
                   <td className="text-right">
+                    {t.tieneComprobante && (
+                      <button
+                        onClick={() => setVerComprobante(t.id)}
+                        className="mr-1 rounded px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600"
+                        title="Ver comprobante"
+                      >
+                        📎
+                      </button>
+                    )}
                     <button
                       onClick={() => setEditar(t)}
-                      className="mr-1 rounded px-2 py-1 hover:bg-slate-200"
+                      className="mr-1 rounded px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600"
                       title="Editar"
                     >
                       ✏️
@@ -483,6 +503,120 @@ export default function TransferenciasPage() {
           }}
         />
       )}
+
+      {verComprobante && (
+        <VisorComprobante
+          id={verComprobante}
+          onClose={() => setVerComprobante(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+// Campo para subir/quitar la foto del comprobante (con vista previa).
+function ComprobanteCampo({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [procesando, setProcesando] = useState(false);
+
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setProcesando(true);
+    try {
+      const dataUrl = await comprimirImagen(file);
+      onChange(dataUrl);
+    } catch {
+      toast("No se pudo procesar la imagen", "error");
+    } finally {
+      setProcesando(false);
+      e.target.value = "";
+    }
+  }
+
+  if (value) {
+    return (
+      <div className="flex items-center gap-3">
+        {value.startsWith("data:image") ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={value}
+            alt="Comprobante"
+            className="h-16 w-16 rounded-lg object-cover ring-1 ring-slate-300"
+          />
+        ) : (
+          <span className="text-sm">📄 Archivo adjunto</span>
+        )}
+        <button
+          type="button"
+          onClick={() => onChange("")}
+          className="btn-secondary px-3 py-1.5 text-xs"
+        >
+          Quitar
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <input
+      type="file"
+      accept="image/*"
+      capture="environment"
+      onChange={onFile}
+      disabled={procesando}
+      className="input file:mr-2 file:rounded file:border-0 file:bg-indigo-600 file:px-3 file:py-1 file:text-white"
+    />
+  );
+}
+
+// Modal que muestra la foto del comprobante (se carga al abrir).
+function VisorComprobante({ id, onClose }: { id: string; onClose: () => void }) {
+  const [src, setSrc] = useState<string | null>(null);
+  const [cargando, setCargando] = useState(true);
+
+  useEffect(() => {
+    fetch(`/api/transferencias/${id}`)
+      .then((r) => r.json())
+      .then((t) => setSrc(t.comprobante ?? null))
+      .finally(() => setCargando(false));
+  }, [id]);
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[90vh] max-w-2xl overflow-auto rounded-2xl bg-white p-4 shadow-xl dark:bg-slate-800"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="font-semibold">Comprobante</h3>
+          <button onClick={onClose} className="btn-secondary px-3 py-1.5 text-xs">
+            Cerrar
+          </button>
+        </div>
+        {cargando ? (
+          <p className="text-sm text-slate-500">Cargando…</p>
+        ) : src ? (
+          src.startsWith("data:image") ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={src} alt="Comprobante" className="max-w-full rounded-lg" />
+          ) : (
+            <a href={src} download className="btn-primary">
+              Descargar archivo
+            </a>
+          )
+        ) : (
+          <p className="text-sm text-slate-400">Sin comprobante.</p>
+        )}
+      </div>
     </div>
   );
 }
@@ -509,8 +643,23 @@ function EditarModal({
     referencia: transferencia.referencia ?? "",
     estado: transferencia.estado,
     observaciones: transferencia.observaciones ?? "",
+    comprobante: "",
   });
   const [guardando, setGuardando] = useState(false);
+  // Evita borrar el comprobante si se guarda antes de que termine de cargar.
+  const [compListo, setCompListo] = useState(!transferencia.tieneComprobante);
+
+  // Carga el comprobante existente (si lo hay) al abrir el modal.
+  useEffect(() => {
+    if (!transferencia.tieneComprobante) return;
+    fetch(`/api/transferencias/${transferencia.id}`)
+      .then((r) => r.json())
+      .then((t) => {
+        if (t.comprobante) setForm((f) => ({ ...f, comprobante: t.comprobante }));
+      })
+      .catch(() => {})
+      .finally(() => setCompListo(true));
+  }, [transferencia.id, transferencia.tieneComprobante]);
 
   const cuentas =
     clientes.find((c) => c.id === form.clienteId)?.cuentas ?? [];
@@ -519,10 +668,16 @@ function EditarModal({
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
     setGuardando(true);
+    const body: Record<string, unknown> = {
+      ...form,
+      monto: parseFloat(form.monto),
+    };
+    // Si el comprobante aún no terminó de cargar, no lo tocamos.
+    if (!compListo) delete body.comprobante;
     await fetch(`/api/transferencias/${transferencia.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, monto: parseFloat(form.monto) }),
+      body: JSON.stringify(body),
     });
     setGuardando(false);
     onSaved();
@@ -634,6 +789,13 @@ function EditarModal({
               rows={2}
               value={form.observaciones}
               onChange={(e) => setForm({ ...form, observaciones: e.target.value })}
+            />
+          </div>
+          <div className="sm:col-span-2">
+            <label className="label">📎 Comprobante (foto)</label>
+            <ComprobanteCampo
+              value={form.comprobante}
+              onChange={(v) => setForm({ ...form, comprobante: v })}
             />
           </div>
         </div>

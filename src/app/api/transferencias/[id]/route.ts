@@ -13,9 +13,20 @@ const schema = z.object({
   referencia: z.string().optional().nullable(),
   estado: z.enum(["pendiente", "reflejada"]).optional(),
   observaciones: z.string().optional().nullable(),
+  comprobante: z.string().optional().nullable(),
 });
 
 type Ctx = { params: Promise<{ id: string }> };
+
+// GET /api/transferencias/[id] -> registro completo (incluye comprobante)
+export async function GET(_req: NextRequest, ctx: Ctx) {
+  const { id } = await ctx.params;
+  const t = await prisma.transferencia.findUnique({ where: { id } });
+  if (!t) {
+    return NextResponse.json({ error: "No encontrada" }, { status: 404 });
+  }
+  return NextResponse.json(t);
+}
 
 export async function PUT(request: NextRequest, ctx: Ctx) {
   const { id } = await ctx.params;
@@ -41,6 +52,7 @@ export async function PUT(request: NextRequest, ctx: Ctx) {
       ...(d.referencia !== undefined ? { referencia: d.referencia || null } : {}),
       ...(d.estado ? { estado: d.estado } : {}),
       ...(d.observaciones !== undefined ? { observaciones: d.observaciones || null } : {}),
+      ...(d.comprobante !== undefined ? { comprobante: d.comprobante || null } : {}),
     },
   });
   await prisma.auditLog.create({

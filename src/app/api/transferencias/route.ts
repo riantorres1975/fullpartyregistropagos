@@ -15,6 +15,7 @@ const schema = z.object({
   referencia: z.string().optional().nullable(),
   estado: z.enum(["pendiente", "reflejada"]).default("pendiente"),
   observaciones: z.string().optional().nullable(),
+  comprobante: z.string().optional().nullable(),
 });
 
 // GET /api/transferencias?q=&estado=&desde=&hasta=&page=&pageSize=
@@ -90,6 +91,7 @@ export async function GET(request: NextRequest) {
       bancoOrigen: t.bancoOrigen,
       bancoDestino: t.bancoDestino,
       observaciones: t.observaciones,
+      tieneComprobante: !!t.comprobante,
       cliente: t.cliente,
       clienteId: t.clienteId,
       cuentaId: t.cuentaId,
@@ -127,6 +129,7 @@ export async function POST(request: NextRequest) {
       referencia: d.referencia || null,
       estado: d.estado,
       observaciones: d.observaciones || null,
+      comprobante: d.comprobante || null,
     },
   });
   await prisma.auditLog.create({
