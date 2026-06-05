@@ -5,10 +5,10 @@ import { usePathname, useRouter } from "next/navigation";
 import ThemeToggle from "@/components/ThemeToggle";
 
 const links = [
-  { href: "/", label: "🏠 Inicio" },
-  { href: "/transferencias", label: "💸 Transferencias" },
-  { href: "/clientes", label: "👥 Clientes" },
-  { href: "/reportes", label: "📊 Reportes" },
+  { href: "/", icon: "🏠", label: "Inicio" },
+  { href: "/transferencias", icon: "💸", label: "Transferencias" },
+  { href: "/clientes", icon: "👥", label: "Clientes" },
+  { href: "/reportes", icon: "📊", label: "Reportes" },
 ];
 
 export default function Nav({ nombre }: { nombre: string }) {
@@ -37,7 +37,7 @@ export default function Nav({ nombre }: { nombre: string }) {
             </button>
           </div>
         </div>
-        <nav className="mt-2 flex gap-1 overflow-x-auto pb-1">
+        <nav className="mt-2 flex gap-1">
           {links.map((l) => {
             const activo =
               l.href === "/" ? pathname === "/" : pathname.startsWith(l.href);
@@ -45,11 +45,12 @@ export default function Nav({ nombre }: { nombre: string }) {
               <Link
                 key={l.href}
                 href={l.href}
-                className={`shrink-0 whitespace-nowrap rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
+                className={`flex flex-1 flex-col items-center gap-0.5 rounded-lg px-1 py-1.5 text-center text-[11px] font-medium leading-tight transition-colors sm:flex-initial sm:flex-row sm:gap-1.5 sm:px-3 sm:py-2 sm:text-sm ${
                   activo ? "bg-white/25" : "hover:bg-white/15"
                 }`}
               >
-                {l.label}
+                <span className="text-lg sm:text-sm">{l.icon}</span>
+                <span>{l.label}</span>
               </Link>
             );
           })}
