@@ -56,6 +56,18 @@ export default function ImprimirPage() {
     return <p style={{ padding: 24 }}>Generando reporte…</p>;
   }
 
+  // Resumen de filtros aplicados (para mostrar en el encabezado)
+  const params = new URLSearchParams(
+    typeof window !== "undefined" ? window.location.search : "",
+  );
+  const filtros: string[] = [];
+  if (params.get("desde") || params.get("hasta")) {
+    filtros.push(
+      `Periodo: ${params.get("desde") || "inicio"} al ${params.get("hasta") || "hoy"}`,
+    );
+  }
+  if (params.get("estado")) filtros.push(`Estado: ${params.get("estado")}`);
+
   // Agrupar por cliente, conservando el orden recibido (ya viene por nombre).
   const grupos: { clienteId: string; nombre: string; items: Item[] }[] = [];
   const indice = new Map<string, number>();
@@ -93,6 +105,9 @@ export default function ImprimirPage() {
           Generado: {formatFecha(data.generadoEn)} · {data.total} registro(s) ·{" "}
           {grupos.length} cliente(s)
         </p>
+        {filtros.length > 0 && (
+          <p className="text-xs font-medium text-slate-600">{filtros.join(" · ")}</p>
+        )}
       </div>
 
       {grupos.length === 0 && (
