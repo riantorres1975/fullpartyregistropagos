@@ -472,8 +472,89 @@ export default function TransferenciasPage() {
       </div>
 
       {/* Listado */}
-      <div className="card overflow-x-auto">
+      <div className="card">
         <p className="mb-2 text-sm text-slate-500">{total} registro(s)</p>
+
+        {/* Vista de tarjetas (móvil) */}
+        <div className="space-y-3 sm:hidden">
+          {items.length === 0 ? (
+            <p className="py-8 text-center text-slate-400">No hay transferencias.</p>
+          ) : (
+            items.map((t) => (
+              <div
+                key={t.id}
+                className={`rounded-xl p-3 ring-1 ring-slate-200 dark:ring-slate-700 ${
+                  t.estado === "reflejada"
+                    ? "bg-green-50 dark:bg-green-900/25"
+                    : "bg-amber-50 dark:bg-amber-900/25"
+                }`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="text-xs text-slate-400">{formatFecha(t.fecha)}</p>
+                    {t.cliente ? (
+                      <button
+                        onClick={() => {
+                          setPage(1);
+                          setFiltros((f) => ({ ...f, clienteId: t.cliente!.id }));
+                        }}
+                        className="font-medium text-indigo-600 dark:text-indigo-400"
+                      >
+                        {t.cliente.nombre}
+                      </button>
+                    ) : (
+                      <span className="font-medium">Sin cliente</span>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => toggleEstado(t)}
+                    className={`shrink-0 rounded-full px-2 py-1 text-xs font-medium ${
+                      t.estado === "reflejada"
+                        ? "bg-green-200 text-green-800"
+                        : "bg-amber-200 text-amber-800"
+                    }`}
+                  >
+                    {t.estado === "reflejada" ? "✅ Reflejada" : "⏳ Pendiente"}
+                  </button>
+                </div>
+                <p className="mt-1 text-xl font-bold">{formatMonto(t.monto, t.moneda)}</p>
+                {t.cuenta && (
+                  <p className="font-mono text-xs text-slate-500">
+                    📂 {t.cuenta.banco} · {t.cuenta.enmascarado}
+                  </p>
+                )}
+                {t.referencia && (
+                  <p className="text-xs text-slate-500">Ref: {t.referencia}</p>
+                )}
+                <div className="mt-3 flex gap-2">
+                  {t.tieneComprobante && (
+                    <button
+                      onClick={() => setVerComprobante(t.id)}
+                      className="btn-secondary flex-1 py-2 text-xs"
+                    >
+                      📎 Ver
+                    </button>
+                  )}
+                  <button
+                    onClick={() => setEditar(t)}
+                    className="btn-secondary flex-1 py-2 text-xs"
+                  >
+                    ✏️ Editar
+                  </button>
+                  <button
+                    onClick={() => eliminar(t.id)}
+                    className="btn-danger flex-1 py-2 text-xs"
+                  >
+                    🗑️ Borrar
+                  </button>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Tabla (escritorio) */}
+        <div className="hidden overflow-x-auto sm:block">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-200 text-left text-slate-500">
@@ -572,6 +653,7 @@ export default function TransferenciasPage() {
             )}
           </tbody>
         </table>
+        </div>
 
         {totalPaginas > 1 && (
           <div className="mt-4 flex items-center justify-center gap-2 text-sm">
