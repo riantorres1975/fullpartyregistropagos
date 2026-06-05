@@ -32,13 +32,19 @@ export default function ReportesPage() {
         <hr className="border-slate-100" />
 
         <div>
-          <h2 className="font-semibold">🖨️ Imprimir</h2>
+          <h2 className="font-semibold">🖨️ Imprimir reporte</h2>
           <p className="mb-2 text-sm text-slate-500">
-            Abre la vista de impresión del navegador (puedes guardar como PDF).
+            Abre un reporte con todas tus transferencias listo para imprimir o
+            guardar como PDF.
           </p>
-          <button onClick={() => window.print()} className="btn-secondary">
+          <a
+            href="/imprimir"
+            target="_blank"
+            rel="noopener"
+            className="btn-secondary inline-flex"
+          >
             🖨️ Imprimir / Guardar PDF
-          </button>
+          </a>
         </div>
       </div>
     </div>
