@@ -7,7 +7,7 @@ import { formatMonto, formatFecha } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import ClienteCombobox from "@/components/ClienteCombobox";
 import BancoSelect from "@/components/BancoSelect";
-import { comprimirImagen } from "@/lib/imagen";
+import { comprimirImagen, prepararParaOCR } from "@/lib/imagen";
 import { analizarRecibo, type DatosRecibo } from "@/lib/ocr";
 import {
   IconPlus,
@@ -770,7 +770,10 @@ function ComprobanteCampo({
       if (onExtract && dataUrl.startsWith("data:image")) {
         setOcr(0);
         try {
-          const datos = await analizarRecibo(dataUrl, (p) => setOcr(p));
+          // El OCR usa una versión preprocesada (ampliada + escala de grises)
+          // del archivo original, no la WebP comprimida que se guarda.
+          const ocrUrl = await prepararParaOCR(file);
+          const datos = await analizarRecibo(ocrUrl, (p) => setOcr(p));
           onExtract(datos);
         } catch {
           toast("No se pudo leer el recibo", "error");

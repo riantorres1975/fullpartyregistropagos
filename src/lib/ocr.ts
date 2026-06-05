@@ -12,15 +12,14 @@ export async function analizarRecibo(
   dataUrl: string,
   onProgreso?: (p: number) => void,
 ): Promise<DatosRecibo> {
-  const Tesseract = (await import("tesseract.js")).default;
-  const { data } = await Tesseract.recognize(dataUrl, "spa", {
-    // Assets auto-hospedados en /public/tesseract (ver scripts/copy-tesseract-assets.mjs).
-    // Evita CDNs externos para que la Content-Security-Policy siga restringida.
+  const { createWorker, PSM } = (await import("tesseract.js")).default;
+  // Assets auto-hospedados en /public/tesseract (ver scripts/copy-tesseract-assets.mjs).
+  // workerBlobURL:false carga el worker como script del mismo origen (sin blob:),
+  // para que la Content-Security-Policy siga restringida.
+  const worker = await createWorker("spa", 1, {
     workerPath: "/tesseract/worker.min.js",
     corePath: "/tesseract/core",
     langPath: "/tesseract/lang",
-    // Carga el worker como script normal del mismo origen (no via blob:),
-    // así la CSP no necesita abrir blob: en worker-src/script-src.
     workerBlobURL: false,
     logger: (m: { status: string; progress: number }) => {
       if (m.status === "recognizing text" && onProgreso) {
@@ -29,13 +28,21 @@ export async function analizarRecibo(
     },
   });
 
-  const texto = data.text || "";
-  return {
-    monto: detectarMonto(texto),
-    referencia: detectarReferencia(texto),
-    banco: detectarBanco(texto),
-    texto,
-  };
+  try {
+    // PSM AUTO (3): segmentación automática de página. En pruebas con recibos
+    // reales captura los montos grandes/aislados que otros modos descartan.
+    await worker.setParameters({ tessedit_pageseg_mode: PSM.AUTO });
+    const { data } = await worker.recognize(dataUrl);
+    const texto = data.text || "";
+    return {
+      monto: detectarMonto(texto),
+      referencia: detectarReferencia(texto),
+      banco: detectarBanco(texto),
+      texto,
+    };
+  } finally {
+    await worker.terminate();
+  }
 }
 
 function aNumero(raw: string): number | null {
@@ -44,7 +51,7 @@ function aNumero(raw: string): number | null {
 }
 
 // --- MONTO ---------------------------------------------------------------
-function detectarMonto(texto: string): number | undefined {
+export function detectarMonto(texto: string): number | undefined {
   const lineas = texto.split(/\n+/);
   const clave = /(monto|importe|total|cantidad|transferid|envi)/i;
   const ignorar = /(comisi|saldo|disponible)/i;
@@ -55,14 +62,17 @@ function detectarMonto(texto: string): number | undefined {
   for (const linea of lineas) {
     if (ignorar.test(linea)) continue;
     const montos: number[] = [];
-    for (const m of linea.matchAll(/\$\s?([\d][\d.,]*)/g)) {
-      const n = aNumero(m[1]);
+    const agregar = (raw: string) => {
+      const n = aNumero(raw);
       if (n !== null) montos.push(n);
-    }
-    for (const m of linea.matchAll(/([\d][\d.,]*)\s?mxn\b/gi)) {
-      const n = aNumero(m[1]);
-      if (n !== null) montos.push(n);
-    }
+    };
+    // $ prefijado (a veces el OCR pierde el $, por eso hay más patrones abajo).
+    for (const m of linea.matchAll(/\$\s?([\d][\d.,]*)/g)) agregar(m[1]);
+    // Sufijo MXN.
+    for (const m of linea.matchAll(/([\d][\d.,]*)\s?mxn\b/gi)) agregar(m[1]);
+    // Separador de miles (5,876 ó 5,876.00): casi siempre es dinero, y sirve
+    // cuando el OCR pierde el "$" (lo lee como "*", "S", etc.).
+    for (const m of linea.matchAll(/\b(\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?)\b/g)) agregar(m[1]);
     if (!montos.length) continue;
     todos.push(...montos);
     if (clave.test(linea)) conClave.push(...montos);
@@ -82,7 +92,7 @@ function extraerToken(linea: string): string | undefined {
   return conDigito[0];
 }
 
-function detectarReferencia(texto: string): string | undefined {
+export function detectarReferencia(texto: string): string | undefined {
   const lineas = texto.split(/\n+/);
   // En orden de prioridad
   const orden = [
@@ -109,8 +119,9 @@ function detectarReferencia(texto: string): string | undefined {
 
 // --- BANCO DE ORIGEN -----------------------------------------------------
 const ALIAS: [RegExp, string][] = [
-  [/banamex/, "Citibanamex"],
+  [/banam[eo]x/, "Citibanamex"],
   [/bbva|bancomer|dimo/, "BBVA México"],
+  [/guardadito/, "Banco Azteca"],
   [/santander/, "Santander"],
   [/banorte/, "Banorte"],
   [/hsbc/, "HSBC"],
@@ -147,16 +158,22 @@ const ALIAS: [RegExp, string][] = [
   [/somos/, "Banco Azteca"],
 ];
 
-function detectarBanco(texto: string): string | undefined {
+export function detectarBanco(texto: string): string | undefined {
   const lower = texto.toLowerCase();
 
-  // Corta el texto antes de la sección de destino/beneficiario, para no
-  // confundir el banco de ORIGEN con el de destino (casi siempre Spin).
-  const corte = lower.search(/\b(destino|para|beneficiari)\b/);
-  const origenTxt = corte >= 0 ? lower.slice(0, corte) : lower;
-
+  // Devuelve el banco cuyo nombre aparece MÁS TEMPRANO en el texto. En los
+  // comprobantes, el banco de ORIGEN se imprime antes que el de DESTINO
+  // (casi siempre Spin by OXXO), así que el primero en aparecer es el origen.
+  // Es más robusto que cortar por "destino/para" (esas palabras aparecen en
+  // frases sueltas como "Para validarla" y rompían la detección).
+  let mejor: string | undefined;
+  let mejorIdx = Infinity;
   for (const [re, nombre] of ALIAS) {
-    if (re.test(origenTxt)) return nombre;
+    const m = lower.match(re);
+    if (m && m.index !== undefined && m.index < mejorIdx) {
+      mejorIdx = m.index;
+      mejor = nombre;
+    }
   }
-  return undefined;
+  return mejor;
 }
