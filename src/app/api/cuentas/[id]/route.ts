@@ -5,7 +5,7 @@ import { decrypt } from "@/lib/crypto";
 type Ctx = { params: Promise<{ id: string }> };
 
 // GET /api/cuentas/[id]?reveal=1 -> devuelve el número COMPLETO descifrado.
-// Solo se usa cuando el usuario pulsa "👁 Mostrar". Queda registrado.
+// Solo se usa cuando el usuario pulsa "Mostrar". Queda registrado.
 export async function GET(request: NextRequest, ctx: Ctx) {
   const { id } = await ctx.params;
   const reveal = request.nextUrl.searchParams.get("reveal");

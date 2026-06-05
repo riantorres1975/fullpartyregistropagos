@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 type ToastType = "ok" | "error" | "info";
 type ToastItem = { id: number; message: string; type: ToastType };
 
-// Lanza un aviso desde cualquier parte: toast("Guardado ✅")
+// Lanza un aviso desde cualquier parte: toast("Guardado")
 export function toast(message: string, type: ToastType = "ok") {
   if (typeof window === "undefined") return;
   window.dispatchEvent(

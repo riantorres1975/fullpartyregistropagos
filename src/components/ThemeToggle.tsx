@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { IconSun, IconMoon } from "@/components/icons";
 
 export default function ThemeToggle() {
   const [oscuro, setOscuro] = useState(false);
@@ -21,11 +22,11 @@ export default function ThemeToggle() {
   return (
     <button
       onClick={alternar}
-      className="rounded-lg bg-white/15 px-3 py-1.5 text-sm hover:bg-white/25"
+      className="flex items-center justify-center rounded-lg bg-white/15 p-2 hover:bg-white/25"
       title={oscuro ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
       aria-label="Cambiar tema"
     >
-      {oscuro ? "☀️" : "🌙"}
+      {oscuro ? <IconSun className="h-4 w-4" /> : <IconMoon className="h-4 w-4" />}
     </button>
   );
 }

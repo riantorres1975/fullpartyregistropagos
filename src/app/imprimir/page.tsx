@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { formatMonto, formatFecha } from "@/lib/format";
+import { IconPrinter, IconCard, IconUser } from "@/components/icons";
 
 type Item = {
   fecha: string;
@@ -86,9 +87,9 @@ export default function ImprimirPage() {
       <div className="mb-6 flex gap-2 print:hidden">
         <button
           onClick={() => window.print()}
-          className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white"
         >
-          🖨️ Imprimir / Guardar PDF
+          <IconPrinter className="h-4 w-4" /> Imprimir / Guardar PDF
         </button>
         <button
           onClick={() => window.close()}
@@ -99,7 +100,9 @@ export default function ImprimirPage() {
       </div>
 
       <div className="mb-4 border-b-2 border-slate-800 pb-3">
-        <h1 className="text-2xl font-bold">💳 Reporte de Transferencias por Cliente</h1>
+        <h1 className="flex items-center gap-2 text-2xl font-bold">
+          <IconCard className="h-6 w-6" /> Reporte de Transferencias por Cliente
+        </h1>
         <p className="text-sm text-slate-500">Full Party</p>
         <p className="text-xs text-slate-500">
           Generado: {formatFecha(data.generadoEn)} · {data.total} registro(s) ·{" "}
@@ -119,8 +122,8 @@ export default function ImprimirPage() {
         const sub = calcularSubtotales(g.items);
         return (
           <div key={g.clienteId} className="mb-6 break-inside-avoid">
-            <h2 className="mb-1 bg-slate-100 px-2 py-1 text-base font-bold">
-              👤 {g.nombre}{" "}
+            <h2 className="mb-1 flex items-center gap-1.5 bg-slate-100 px-2 py-1 text-base font-bold">
+              <IconUser className="h-4 w-4" /> {g.nombre}{" "}
               <span className="text-xs font-normal text-slate-500">
                 ({g.items.length} transferencia{g.items.length !== 1 ? "s" : ""})
               </span>

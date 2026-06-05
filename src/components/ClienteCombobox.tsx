@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { IconX } from "@/components/icons";
 
 type Opt = { id: string; nombre: string };
 
@@ -71,7 +72,7 @@ export default function ClienteCombobox({
           className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
           aria-label="Quitar cliente"
         >
-          ✕
+          <IconX className="h-4 w-4" />
         </button>
       )}
       {abierto && (

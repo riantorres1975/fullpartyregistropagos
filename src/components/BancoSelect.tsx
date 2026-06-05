@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { IconX } from "@/components/icons";
 
 // Selector de banco con mini-buscador: escribes y filtra la lista.
 export default function BancoSelect({
@@ -70,7 +71,7 @@ export default function BancoSelect({
           className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
           aria-label="Quitar banco"
         >
-          ✕
+          <IconX className="h-4 w-4" />
         </button>
       )}
       {abierto && (

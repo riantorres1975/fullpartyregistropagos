@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { IconCard, IconLock } from "@/components/icons";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -38,13 +39,13 @@ export default function LoginPage() {
     <main className="flex flex-1 items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
-          <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#6d28d9_0%,#db2777_100%)] text-3xl shadow-lg shadow-violet-600/30">
-            💳
+          <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#6d28d9_0%,#db2777_100%)] text-white shadow-lg shadow-violet-600/30">
+            <IconCard className="h-8 w-8" />
           </div>
           <h1 className="text-2xl font-extrabold text-slate-800 dark:text-slate-100">
             Mis Transferencias
           </h1>
-          <p className="text-sm text-slate-500 dark:text-slate-400">Full Party 🎈</p>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Full Party</p>
         </div>
 
         <form onSubmit={onSubmit} className="card space-y-4">
@@ -82,8 +83,8 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p className="mt-4 text-center text-xs text-slate-400">
-          🔒 Tus datos están cifrados y protegidos
+        <p className="mt-4 flex items-center justify-center gap-1.5 text-center text-xs text-slate-400">
+          <IconLock className="h-3.5 w-3.5" /> Tus datos están cifrados y protegidos
         </p>
       </div>
     </main>

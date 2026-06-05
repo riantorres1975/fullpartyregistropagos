@@ -2,6 +2,13 @@
 
 import { useEffect, useState } from "react";
 import ClienteCombobox from "@/components/ClienteCombobox";
+import {
+  IconFilter,
+  IconPrinter,
+  IconChart,
+  IconSave,
+  IconDownload,
+} from "@/components/icons";
 
 export default function ReportesPage() {
   const [clientes, setClientes] = useState<{ id: string; nombre: string }[]>([]);
@@ -34,7 +41,9 @@ export default function ReportesPage() {
 
       {/* Filtros */}
       <div className="card space-y-3">
-        <h2 className="font-semibold">🔎 Filtrar reporte (opcional)</h2>
+        <h2 className="flex items-center gap-2 font-semibold">
+          <IconFilter className="h-4 w-4" /> Filtrar reporte (opcional)
+        </h2>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <label className="label">Cliente</label>
@@ -91,7 +100,9 @@ export default function ReportesPage() {
 
       <div className="card space-y-4">
         <div>
-          <h2 className="font-semibold">🖨️ Imprimir reporte por cliente</h2>
+          <h2 className="flex items-center gap-2 font-semibold">
+            <IconPrinter className="h-4 w-4" /> Imprimir reporte por cliente
+          </h2>
           <p className="mb-2 text-sm text-slate-500">
             Genera un reporte agrupado por cliente con subtotales, listo para
             imprimir o guardar como PDF.
@@ -102,14 +113,16 @@ export default function ReportesPage() {
             rel="noopener"
             className="btn-primary inline-flex"
           >
-            🖨️ Imprimir / Guardar PDF
+            <IconPrinter className="h-4 w-4" /> Imprimir / Guardar PDF
           </a>
         </div>
 
         <hr className="border-slate-100 dark:border-slate-700" />
 
         <div>
-          <h2 className="font-semibold">📊 Exportar a Excel</h2>
+          <h2 className="flex items-center gap-2 font-semibold">
+            <IconChart className="h-4 w-4" /> Exportar a Excel
+          </h2>
           <p className="mb-2 text-sm text-slate-500">
             Descarga las transferencias (según los filtros) en un archivo CSV que
             abre en Excel.
@@ -118,21 +131,23 @@ export default function ReportesPage() {
             href={"/api/export/transferencias" + queryString()}
             className="btn-secondary inline-flex"
           >
-            📥 Descargar Excel/CSV
+            <IconDownload className="h-4 w-4" /> Descargar Excel/CSV
           </a>
         </div>
 
         <hr className="border-slate-100 dark:border-slate-700" />
 
         <div>
-          <h2 className="font-semibold">💾 Copia de seguridad</h2>
+          <h2 className="flex items-center gap-2 font-semibold">
+            <IconSave className="h-4 w-4" /> Copia de seguridad
+          </h2>
           <p className="mb-2 text-sm text-slate-500">
             Respaldo COMPLETO en formato JSON (todos los datos, sin filtros). Las
             cuentas van cifradas y solo se restauran con la misma clave de
             cifrado. Guárdalo en lugar seguro.
           </p>
           <a href="/api/backup" className="btn-secondary inline-flex">
-            💾 Descargar respaldo (.json)
+            <IconSave className="h-4 w-4" /> Descargar respaldo (.json)
           </a>
         </div>
       </div>

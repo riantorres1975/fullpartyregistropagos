@@ -1,9 +1,10 @@
 // Comprime y reduce una imagen en el navegador antes de guardarla.
-// Devuelve un data URL (JPEG) listo para enviar al servidor.
+// La convierte a WebP (mejor compresión). Si el navegador no soporta
+// codificar WebP, canvas.toDataURL hace fallback a PNG automáticamente.
 export async function comprimirImagen(
   file: File,
   maxDim = 1280,
-  calidad = 0.6,
+  calidad = 0.7,
 ): Promise<string> {
   const dataUrl = await leerComoDataUrl(file);
 
@@ -24,7 +25,7 @@ export async function comprimirImagen(
   const ctx = canvas.getContext("2d");
   if (!ctx) return dataUrl;
   ctx.drawImage(img, 0, 0, width, height);
-  return canvas.toDataURL("image/jpeg", calidad);
+  return canvas.toDataURL("image/webp", calidad);
 }
 
 function leerComoDataUrl(file: File): Promise<string> {

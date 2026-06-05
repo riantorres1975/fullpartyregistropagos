@@ -8,6 +8,17 @@ import ClienteCombobox from "@/components/ClienteCombobox";
 import BancoSelect from "@/components/BancoSelect";
 import { comprimirImagen } from "@/lib/imagen";
 import { analizarRecibo, type DatosRecibo } from "@/lib/ocr";
+import {
+  IconPlus,
+  IconX,
+  IconCheck,
+  IconCheckCircle,
+  IconClock,
+  IconPaperclip,
+  IconPencil,
+  IconTrash,
+  IconFolder,
+} from "@/components/icons";
 
 type CuentaOpt = {
   id: string;
@@ -43,6 +54,14 @@ type Resumen = Record<
   string,
   { pendiente: number; reflejada: number; total: number }
 >;
+
+function EstadoIcono({ estado }: { estado: string }) {
+  return estado === "reflejada" ? (
+    <IconCheckCircle className="h-3.5 w-3.5" />
+  ) : (
+    <IconClock className="h-3.5 w-3.5" />
+  );
+}
 
 const hoy = () => new Date().toISOString().slice(0, 10);
 
@@ -191,7 +210,7 @@ export default function TransferenciasPage() {
       setForm({ ...formVacio, fecha: hoy() });
       setPage(1);
       cargar();
-      toast("✅ Transferencia guardada");
+      toast("Transferencia guardada");
     } else {
       const d = await res.json();
       toast(d.error ?? "Error al guardar", "error");
@@ -206,14 +225,14 @@ export default function TransferenciasPage() {
       body: JSON.stringify({ estado: nuevo }),
     });
     cargar();
-    toast(nuevo === "reflejada" ? "✅ Marcada como reflejada" : "⏳ Marcada como pendiente");
+    toast(nuevo === "reflejada" ? "Marcada como reflejada" : "Marcada como pendiente");
   }
 
   async function eliminar(id: string) {
     if (!confirm("¿Eliminar esta transferencia?")) return;
     await fetch(`/api/transferencias/${id}`, { method: "DELETE" });
     cargar();
-    toast("🗑️ Transferencia eliminada");
+    toast("Transferencia eliminada");
   }
 
   const totalPaginas = Math.max(1, Math.ceil(total / pageSize));
@@ -230,7 +249,15 @@ export default function TransferenciasPage() {
             className="btn-primary"
             title="Atajo: Alt+N"
           >
-            {mostrarForm ? "✕ Ocultar formulario" : "➕ Nueva transferencia"}
+            {mostrarForm ? (
+              <>
+                <IconX className="h-4 w-4" /> Ocultar formulario
+              </>
+            ) : (
+              <>
+                <IconPlus className="h-4 w-4" /> Nueva transferencia
+              </>
+            )}
           </button>
         </div>
         <p className="mt-1 text-xs text-slate-400">
@@ -358,7 +385,9 @@ export default function TransferenciasPage() {
             />
           </div>
           <div>
-            <label className="label">📎 Comprobante (foto)</label>
+            <label className="label flex items-center gap-1.5">
+              <IconPaperclip className="h-3.5 w-3.5" /> Comprobante (foto)
+            </label>
             <ComprobanteCampo
               value={form.comprobante}
               onChange={(v) => setForm({ ...form, comprobante: v })}
@@ -375,7 +404,7 @@ export default function TransferenciasPage() {
                 if (d.banco) partes.push("banco");
                 toast(
                   partes.length
-                    ? `🔎 Detectado del recibo: ${partes.join(", ")}`
+                    ? `Detectado del recibo: ${partes.join(", ")}`
                     : "No se detectaron datos en el recibo",
                   partes.length ? "ok" : "info",
                 );
@@ -387,7 +416,13 @@ export default function TransferenciasPage() {
           </div>
           <div className="sm:col-span-3">
             <button className="btn-primary" disabled={guardando}>
-              {guardando ? "Guardando…" : "✅ Guardar transferencia"}
+              {guardando ? (
+                "Guardando…"
+              ) : (
+                <>
+                  <IconCheck className="h-4 w-4" /> Guardar transferencia
+                </>
+              )}
             </button>
           </div>
         </form>
@@ -403,11 +438,11 @@ export default function TransferenciasPage() {
             >
               <p className="text-xs font-semibold text-slate-400">{moneda}</p>
               <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-sm">
-                <span className="text-amber-600">
-                  ⏳ {formatMonto(r.pendiente, moneda)}
+                <span className="flex items-center gap-1 text-amber-600">
+                  <IconClock className="h-4 w-4" /> {formatMonto(r.pendiente, moneda)}
                 </span>
-                <span className="text-green-600">
-                  ✅ {formatMonto(r.reflejada, moneda)}
+                <span className="flex items-center gap-1 text-emerald-600">
+                  <IconCheckCircle className="h-4 w-4" /> {formatMonto(r.reflejada, moneda)}
                 </span>
                 <span className="font-semibold text-slate-700">
                   Σ {formatMonto(r.total, moneda)}
@@ -427,12 +462,12 @@ export default function TransferenciasPage() {
             setPage(1);
             setFiltros({ ...filtros, clienteId: id });
           }}
-          placeholder="👤 Filtrar por cliente…"
+          placeholder="Filtrar por cliente…"
         />
         <input
           ref={filtroRef}
           className="input"
-          placeholder="🔍 Referencia"
+          placeholder="Referencia"
           value={filtros.q}
           onChange={(e) => {
             setPage(1);
@@ -508,19 +543,21 @@ export default function TransferenciasPage() {
                   </div>
                   <button
                     onClick={() => toggleEstado(t)}
-                    className={`shrink-0 rounded-full px-2 py-1 text-xs font-medium ${
+                    className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-1 text-xs font-medium ${
                       t.estado === "reflejada"
-                        ? "bg-green-200 text-green-800"
+                        ? "bg-emerald-200 text-emerald-800"
                         : "bg-amber-200 text-amber-800"
                     }`}
                   >
-                    {t.estado === "reflejada" ? "✅ Reflejada" : "⏳ Pendiente"}
+                    <EstadoIcono estado={t.estado} />
+                    {t.estado === "reflejada" ? "Reflejada" : "Pendiente"}
                   </button>
                 </div>
                 <p className="mt-1 text-xl font-bold">{formatMonto(t.monto, t.moneda)}</p>
                 {t.cuenta && (
-                  <p className="font-mono text-xs text-slate-500">
-                    📂 {t.cuenta.banco} · {t.cuenta.enmascarado}
+                  <p className="flex items-center gap-1 font-mono text-xs text-slate-500">
+                    <IconFolder className="h-3.5 w-3.5" /> {t.cuenta.banco} ·{" "}
+                    {t.cuenta.enmascarado}
                   </p>
                 )}
                 {t.referencia && (
@@ -532,20 +569,20 @@ export default function TransferenciasPage() {
                       onClick={() => setVerComprobante(t.id)}
                       className="btn-secondary flex-1 py-2 text-xs"
                     >
-                      📎 Ver
+                      <IconPaperclip className="h-4 w-4" /> Ver
                     </button>
                   )}
                   <button
                     onClick={() => setEditar(t)}
                     className="btn-secondary flex-1 py-2 text-xs"
                   >
-                    ✏️ Editar
+                    <IconPencil className="h-4 w-4" /> Editar
                   </button>
                   <button
                     onClick={() => eliminar(t.id)}
                     className="btn-danger flex-1 py-2 text-xs"
                   >
-                    🗑️ Borrar
+                    <IconTrash className="h-4 w-4" /> Borrar
                   </button>
                 </div>
               </div>
@@ -613,39 +650,40 @@ export default function TransferenciasPage() {
                   <td>
                     <button
                       onClick={() => toggleEstado(t)}
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
                         t.estado === "reflejada"
-                          ? "bg-green-200 text-green-800"
+                          ? "bg-emerald-200 text-emerald-800"
                           : "bg-amber-200 text-amber-800"
                       }`}
                       title="Clic para cambiar el estado"
                     >
-                      {t.estado === "reflejada" ? "✅ Reflejada" : "⏳ Pendiente"}
+                      <EstadoIcono estado={t.estado} />
+                      {t.estado === "reflejada" ? "Reflejada" : "Pendiente"}
                     </button>
                   </td>
                   <td className="text-right">
                     {t.tieneComprobante && (
                       <button
                         onClick={() => setVerComprobante(t.id)}
-                        className="mr-1 rounded px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600"
+                        className="mr-1 inline-flex rounded p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600"
                         title="Ver comprobante"
                       >
-                        📎
+                        <IconPaperclip className="h-4 w-4" />
                       </button>
                     )}
                     <button
                       onClick={() => setEditar(t)}
-                      className="mr-1 rounded px-2 py-1 hover:bg-slate-200 dark:hover:bg-slate-600"
+                      className="mr-1 inline-flex rounded p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600"
                       title="Editar"
                     >
-                      ✏️
+                      <IconPencil className="h-4 w-4" />
                     </button>
                     <button
                       onClick={() => eliminar(t.id)}
-                      className="rounded px-2 py-1 hover:bg-red-100"
+                      className="inline-flex rounded p-1.5 text-rose-600 hover:bg-rose-100 dark:hover:bg-rose-900/30"
                       title="Eliminar"
                     >
-                      🗑️
+                      <IconTrash className="h-4 w-4" />
                     </button>
                   </td>
                 </tr>
@@ -686,7 +724,7 @@ export default function TransferenciasPage() {
           onSaved={() => {
             setEditar(null);
             cargar();
-            toast("✅ Cambios guardados");
+            toast("Cambios guardados");
           }}
         />
       )}
@@ -766,10 +804,12 @@ function ComprobanteCampo({
             )}
           </>
         ) : (
-          <span className="text-sm">📄 Archivo adjunto</span>
+          <span className="flex items-center gap-1 text-sm">
+            <IconFolder className="h-4 w-4" /> Archivo adjunto
+          </span>
         )}
         {ocr !== null ? (
-          <span className="text-xs text-slate-500">🔎 Leyendo recibo… {ocr}%</span>
+          <span className="text-xs text-slate-500">Leyendo recibo… {ocr}%</span>
         ) : (
           <button
             type="button"
@@ -1037,7 +1077,9 @@ function EditarModal({
             />
           </div>
           <div className="sm:col-span-2">
-            <label className="label">📎 Comprobante (foto)</label>
+            <label className="label flex items-center gap-1.5">
+              <IconPaperclip className="h-3.5 w-3.5" /> Comprobante (foto)
+            </label>
             <ComprobanteCampo
               value={form.comprobante}
               onChange={(v) => setForm({ ...form, comprobante: v })}

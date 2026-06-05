@@ -3,6 +3,15 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { formatMonto, formatFecha } from "@/lib/format";
+import {
+  IconPlus,
+  IconClock,
+  IconCheckCircle,
+  IconCard,
+  IconUsers,
+} from "@/components/icons";
+
+type IconComp = (p: { className?: string }) => React.ReactElement;
 
 type Dashboard = {
   pendientes: number;
@@ -40,7 +49,8 @@ export default function DashboardPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Resumen</h1>
         <Link href="/transferencias" className="btn-primary">
-          + Nueva transferencia
+          <IconPlus className="h-4 w-4" />
+          Nueva transferencia
         </Link>
       </div>
 
@@ -49,29 +59,29 @@ export default function DashboardPage() {
           label="Pendientes"
           value={data.pendientes}
           color="text-amber-500"
-          emoji="⏳"
-          chip="bg-amber-100 dark:bg-amber-500/15"
+          Icon={IconClock}
+          chip="bg-amber-100 text-amber-600 dark:bg-amber-500/15 dark:text-amber-400"
         />
         <Stat
           label="Reflejadas"
           value={data.reflejadas}
           color="text-emerald-500"
-          emoji="✅"
-          chip="bg-emerald-100 dark:bg-emerald-500/15"
+          Icon={IconCheckCircle}
+          chip="bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-400"
         />
         <Stat
           label="Total registros"
           value={data.totalTransferencias}
           color="text-violet-500"
-          emoji="📋"
-          chip="bg-violet-100 dark:bg-violet-500/15"
+          Icon={IconCard}
+          chip="bg-violet-100 text-violet-600 dark:bg-violet-500/15 dark:text-violet-400"
         />
         <Stat
           label="Clientes"
           value={data.totalClientes}
           color="text-pink-500"
-          emoji="👥"
-          chip="bg-pink-100 dark:bg-pink-500/15"
+          Icon={IconUsers}
+          chip="bg-pink-100 text-pink-600 dark:bg-pink-500/15 dark:text-pink-400"
         />
       </div>
 
@@ -87,11 +97,11 @@ export default function DashboardPage() {
                 className="flex flex-wrap items-center justify-between rounded-lg bg-slate-50 px-4 py-2 text-sm dark:bg-slate-700/50"
               >
                 <span className="font-semibold">{moneda}</span>
-                <span className="text-amber-600">
-                  ⏳ {formatMonto(t.pendiente, moneda)}
+                <span className="flex items-center gap-1 text-amber-600">
+                  <IconClock className="h-4 w-4" /> {formatMonto(t.pendiente, moneda)}
                 </span>
-                <span className="text-green-600">
-                  ✅ {formatMonto(t.reflejada, moneda)}
+                <span className="flex items-center gap-1 text-emerald-600">
+                  <IconCheckCircle className="h-4 w-4" /> {formatMonto(t.reflejada, moneda)}
                 </span>
               </div>
             ))}
@@ -119,11 +129,16 @@ export default function DashboardPage() {
                 <div className="text-right">
                   <p className="font-semibold">{formatMonto(t.monto, t.moneda)}</p>
                   <span
-                    className={`text-xs ${
-                      t.estado === "reflejada" ? "text-green-600" : "text-amber-600"
+                    className={`flex items-center justify-end gap-1 text-xs ${
+                      t.estado === "reflejada" ? "text-emerald-600" : "text-amber-600"
                     }`}
                   >
-                    {t.estado === "reflejada" ? "✅ Reflejada" : "⏳ Pendiente"}
+                    {t.estado === "reflejada" ? (
+                      <IconCheckCircle className="h-3.5 w-3.5" />
+                    ) : (
+                      <IconClock className="h-3.5 w-3.5" />
+                    )}
+                    {t.estado === "reflejada" ? "Reflejada" : "Pendiente"}
                   </span>
                 </div>
               </li>
@@ -139,21 +154,21 @@ function Stat({
   label,
   value,
   color,
-  emoji,
+  Icon,
   chip,
 }: {
   label: string;
   value: number;
   color: string;
-  emoji: string;
+  Icon: IconComp;
   chip: string;
 }) {
   return (
     <div className="card flex items-center gap-4 transition-transform duration-200 hover:-translate-y-0.5">
       <div
-        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-2xl ${chip}`}
+        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${chip}`}
       >
-        {emoji}
+        <Icon className="h-6 w-6" />
       </div>
       <div className="min-w-0">
         <p className="truncate text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">

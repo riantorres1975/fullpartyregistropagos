@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { BANCOS } from "@/lib/bancos";
 import { toast } from "@/lib/toast";
 import BancoSelect from "@/components/BancoSelect";
+import { IconTrash, IconEye, IconEyeOff, IconPlus } from "@/components/icons";
 
 type Cuenta = {
   id: string;
@@ -52,7 +53,7 @@ export default function ClientesPage() {
     if (res.ok) {
       setNuevo({ nombre: "", alias: "", notas: "" });
       cargar();
-      toast("✅ Cliente agregado");
+      toast("Cliente agregado");
     } else {
       toast("No se pudo agregar el cliente", "error");
     }
@@ -62,7 +63,7 @@ export default function ClientesPage() {
     if (!confirm("¿Eliminar este cliente y sus cuentas guardadas?")) return;
     await fetch(`/api/clientes/${id}`, { method: "DELETE" });
     cargar();
-    toast("🗑️ Cliente eliminado");
+    toast("Cliente eliminado");
   }
 
   return (
@@ -98,7 +99,7 @@ export default function ClientesPage() {
 
       <input
         className="input"
-        placeholder="🔍 Buscar cliente…"
+        placeholder="Buscar cliente…"
         value={q}
         onChange={(e) => setQ(e.target.value)}
       />
@@ -151,8 +152,12 @@ function ClienteCard({
           >
             {abierto ? "Cerrar" : "Cuentas"}
           </button>
-          <button onClick={onDelete} className="btn-danger px-3 py-1.5">
-            🗑️
+          <button
+            onClick={onDelete}
+            className="btn-danger px-3 py-1.5"
+            title="Eliminar cliente"
+          >
+            <IconTrash className="h-4 w-4" />
           </button>
         </div>
       </div>
@@ -185,7 +190,7 @@ function CuentaRow({ cuenta, onChange }: { cuenta: Cuenta; onChange: () => void 
     if (!confirm("¿Eliminar esta cuenta?")) return;
     await fetch(`/api/cuentas/${cuenta.id}`, { method: "DELETE" });
     onChange();
-    toast("🗑️ Cuenta eliminada");
+    toast("Cuenta eliminada");
   }
 
   return (
@@ -202,10 +207,22 @@ function CuentaRow({ cuenta, onChange }: { cuenta: Cuenta; onChange: () => void 
       </div>
       <div className="flex gap-2">
         <button onClick={toggle} className="btn-secondary px-2 py-1 text-xs">
-          {revelado ? "🙈 Ocultar" : "👁 Mostrar"}
+          {revelado ? (
+            <>
+              <IconEyeOff className="h-3.5 w-3.5" /> Ocultar
+            </>
+          ) : (
+            <>
+              <IconEye className="h-3.5 w-3.5" /> Mostrar
+            </>
+          )}
         </button>
-        <button onClick={eliminar} className="btn-danger px-2 py-1 text-xs">
-          🗑️
+        <button
+          onClick={eliminar}
+          className="btn-danger px-2 py-1 text-xs"
+          title="Eliminar cuenta"
+        >
+          <IconTrash className="h-3.5 w-3.5" />
         </button>
       </div>
     </div>
@@ -240,7 +257,7 @@ function NuevaCuenta({
     if (res.ok) {
       setForm({ banco: "", tipo: "cuenta", titular: "", numero: "" });
       onChange();
-      toast("✅ Cuenta agregada y cifrada");
+      toast("Cuenta agregada y cifrada");
     } else {
       toast("No se pudo agregar la cuenta", "error");
     }
