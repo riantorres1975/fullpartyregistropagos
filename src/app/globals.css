@@ -3,13 +3,23 @@
 /* Modo oscuro por clase: se activa cuando <html> tiene la clase .dark */
 @custom-variant dark (&:where(.dark, .dark *));
 
-:root {
-  --brand: #667eea;
-  --brand-2: #764ba2;
+@theme inline {
+  --font-sans: var(--font-text), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-brand), ui-sans-serif, system-ui, sans-serif;
 }
 
-body {
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+@layer base {
+  body {
+    font-family: var(--font-text), system-ui, sans-serif;
+    font-variant-numeric: tabular-nums;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-brand), system-ui, sans-serif;
+    letter-spacing: -0.02em;
+  }
 }
 
 /* Clases reutilizables */
@@ -18,7 +28,7 @@ body {
   .btn-primary,
   .btn-secondary,
   .btn-danger {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold transition-colors;
+    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-150 active:scale-[0.97];
   }
   .btn:disabled,
   .btn-primary:disabled,
@@ -27,22 +37,22 @@ body {
     @apply cursor-not-allowed opacity-50;
   }
   .btn-primary {
-    @apply bg-indigo-600 text-white hover:bg-indigo-700;
+    @apply bg-violet-600 text-white shadow-sm shadow-violet-600/25 hover:bg-violet-700 hover:shadow-md hover:shadow-violet-600/30;
   }
   .btn-secondary {
-    @apply bg-slate-200 text-slate-700 hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-100 dark:hover:bg-slate-600;
+    @apply bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50 dark:bg-slate-700 dark:text-slate-100 dark:ring-white/10 dark:hover:bg-slate-600;
   }
   .btn-danger {
-    @apply bg-red-600 text-white hover:bg-red-700;
+    @apply bg-rose-600 text-white hover:bg-rose-700;
   }
   .input {
     /* text-base (16px) en móvil evita el zoom automático de iOS al enfocar */
-    @apply w-full rounded-lg border border-slate-300 px-3 py-2.5 text-base outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 sm:text-sm dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100 dark:focus:border-indigo-400 dark:focus:ring-indigo-900;
+    @apply w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-base text-slate-800 outline-none transition-colors placeholder:text-slate-400 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 sm:text-sm dark:border-white/10 dark:bg-slate-900/60 dark:text-slate-100 dark:placeholder:text-slate-500;
   }
   .label {
-    @apply mb-1 block text-sm font-medium text-slate-600 dark:text-slate-300;
+    @apply mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400;
   }
   .card {
-    @apply rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 dark:bg-slate-800 dark:ring-slate-700;
+    @apply rounded-2xl bg-white p-6 shadow-[0_1px_2px_rgba(16,12,30,0.04),0_14px_30px_-18px_rgba(16,12,30,0.22)] ring-1 ring-slate-900/[0.05] dark:bg-slate-800/70 dark:ring-white/10;
   }
 }

@@ -22,10 +22,12 @@ export default function Nav({ nombre }: { nombre: string }) {
   }
 
   return (
-    <header className="sticky top-0 z-40 bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow">
+    <header className="sticky top-0 z-40 bg-[linear-gradient(115deg,#3b1578_0%,#6d28d9_48%,#db2777_115%)] text-white shadow-lg shadow-violet-950/20">
       <div className="mx-auto max-w-5xl px-3 py-2.5 sm:px-4">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-base font-bold sm:text-lg">💳 Mis Transferencias</span>
+          <span className="font-display text-base font-extrabold tracking-tight sm:text-lg">
+            💳 Mis Transferencias
+          </span>
           <div className="flex items-center gap-2">
             <span className="hidden text-sm opacity-90 sm:inline">👋 {nombre}</span>
             <ThemeToggle />

@@ -38,10 +38,12 @@ export default function LoginPage() {
     <main className="flex flex-1 items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="mb-6 text-center">
-          <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-3xl">
+          <div className="mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,#6d28d9_0%,#db2777_100%)] text-3xl shadow-lg shadow-violet-600/30">
             💳
           </div>
-          <h1 className="text-xl font-bold text-slate-800 dark:text-slate-100">Mis Transferencias</h1>
+          <h1 className="text-2xl font-extrabold text-slate-800 dark:text-slate-100">
+            Mis Transferencias
+          </h1>
           <p className="text-sm text-slate-500 dark:text-slate-400">Full Party 🎈</p>
         </div>
 

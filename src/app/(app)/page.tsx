@@ -45,10 +45,34 @@ export default function DashboardPage() {
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <Stat label="Pendientes" value={data.pendientes} color="text-amber-600" emoji="⏳" />
-        <Stat label="Reflejadas" value={data.reflejadas} color="text-green-600" emoji="✅" />
-        <Stat label="Total registros" value={data.totalTransferencias} color="text-indigo-600" emoji="📋" />
-        <Stat label="Clientes" value={data.totalClientes} color="text-purple-600" emoji="👥" />
+        <Stat
+          label="Pendientes"
+          value={data.pendientes}
+          color="text-amber-500"
+          emoji="⏳"
+          chip="bg-amber-100 dark:bg-amber-500/15"
+        />
+        <Stat
+          label="Reflejadas"
+          value={data.reflejadas}
+          color="text-emerald-500"
+          emoji="✅"
+          chip="bg-emerald-100 dark:bg-emerald-500/15"
+        />
+        <Stat
+          label="Total registros"
+          value={data.totalTransferencias}
+          color="text-violet-500"
+          emoji="📋"
+          chip="bg-violet-100 dark:bg-violet-500/15"
+        />
+        <Stat
+          label="Clientes"
+          value={data.totalClientes}
+          color="text-pink-500"
+          emoji="👥"
+          chip="bg-pink-100 dark:bg-pink-500/15"
+        />
       </div>
 
       <div className="card">
@@ -116,18 +140,27 @@ function Stat({
   value,
   color,
   emoji,
+  chip,
 }: {
   label: string;
   value: number;
   color: string;
   emoji: string;
+  chip: string;
 }) {
   return (
-    <div className="card">
-      <p className="text-sm text-slate-500 dark:text-slate-400">
-        {emoji} {label}
-      </p>
-      <p className={`mt-1 text-3xl font-bold ${color}`}>{value}</p>
+    <div className="card flex items-center gap-4 transition-transform duration-200 hover:-translate-y-0.5">
+      <div
+        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl text-2xl ${chip}`}
+      >
+        {emoji}
+      </div>
+      <div className="min-w-0">
+        <p className="truncate text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          {label}
+        </p>
+        <p className={`font-display text-3xl font-extrabold ${color}`}>{value}</p>
+      </div>
     </div>
   );
 }
