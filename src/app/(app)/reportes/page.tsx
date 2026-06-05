@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import useSWR from "swr";
 import ClienteCombobox from "@/components/ClienteCombobox";
 import {
   IconFilter,
@@ -10,18 +11,15 @@ import {
   IconDownload,
 } from "@/components/icons";
 
-export default function ReportesPage() {
-  const [clientes, setClientes] = useState<{ id: string; nombre: string }[]>([]);
-  const [f, setF] = useState({ clienteId: "", estado: "", desde: "", hasta: "" });
+type ClienteOpt = { id: string; nombre: string };
 
-  useEffect(() => {
-    fetch("/api/clientes")
-      .then((r) => r.json())
-      .then((d) =>
-        setClientes(d.map((c: { id: string; nombre: string }) => ({ id: c.id, nombre: c.nombre }))),
-      )
-      .catch(() => {});
-  }, []);
+export default function ReportesPage() {
+  const { data: clientesData } = useSWR<ClienteOpt[]>("/api/clientes");
+  const clientes: ClienteOpt[] = (clientesData ?? []).map((c) => ({
+    id: c.id,
+    nombre: c.nombre,
+  }));
+  const [f, setF] = useState({ clienteId: "", estado: "", desde: "", hasta: "" });
 
   function queryString() {
     const sp = new URLSearchParams();

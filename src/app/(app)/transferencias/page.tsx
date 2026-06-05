@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import useSWR, { useSWRConfig } from "swr";
 import { BANCOS, MONEDAS } from "@/lib/bancos";
 import { formatMonto, formatFecha } from "@/lib/format";
 import { toast } from "@/lib/toast";
@@ -79,11 +80,10 @@ const formVacio = {
   comprobante: "",
 };
 
+const pageSize = 25;
+
 export default function TransferenciasPage() {
-  const [clientes, setClientes] = useState<ClienteConCuentas[]>([]);
-  const [items, setItems] = useState<Transferencia[]>([]);
-  const [total, setTotal] = useState(0);
-  const [resumen, setResumen] = useState<Resumen>({});
+  const { mutate: globalMutate } = useSWRConfig();
   const [page, setPage] = useState(1);
   const [filtros, setFiltros] = useState({
     q: "",
@@ -99,7 +99,18 @@ export default function TransferenciasPage() {
   const [mostrarForm, setMostrarForm] = useState(true);
   const formRef = useRef<HTMLFormElement>(null);
   const filtroRef = useRef<HTMLInputElement>(null);
-  const pageSize = 25;
+
+  // Clientes: misma clave que en otras pantallas, así la caché se comparte.
+  const { data: clientesData } = useSWR<ClienteConCuentas[]>("/api/clientes");
+  const clientes: ClienteConCuentas[] = useMemo(
+    () =>
+      (clientesData ?? []).map((c) => ({
+        id: c.id,
+        nombre: c.nombre,
+        cuentas: c.cuentas ?? [],
+      })),
+    [clientesData],
+  );
 
   // Atajos de teclado
   useEffect(() => {
@@ -128,47 +139,42 @@ export default function TransferenciasPage() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const cargarClientes = useCallback(async () => {
-    const res = await fetch("/api/clientes");
-    if (res.ok) {
-      const data = await res.json();
-      setClientes(
-        data.map((c: ClienteConCuentas) => ({
-          id: c.id,
-          nombre: c.nombre,
-          cuentas: c.cuentas ?? [],
-        })),
-      );
-    }
-  }, []);
-
+  // Búsqueda por referencia con debounce (250 ms) para no pedir por tecla.
+  const [qDebounced, setQDebounced] = useState("");
   useEffect(() => {
-    cargarClientes();
-  }, [cargarClientes]);
+    const t = setTimeout(() => setQDebounced(filtros.q), 250);
+    return () => clearTimeout(t);
+  }, [filtros.q]);
 
-  const cargar = useCallback(async () => {
+  // Clave de la lista: cambia con página y filtros. SWR cachea cada
+  // combinación, así volver a un filtro/página ya visto es instantáneo.
+  const listKey = useMemo(() => {
     const sp = new URLSearchParams({
       page: String(page),
       pageSize: String(pageSize),
     });
-    if (filtros.q) sp.set("q", filtros.q);
+    if (qDebounced) sp.set("q", qDebounced);
     if (filtros.estado) sp.set("estado", filtros.estado);
     if (filtros.clienteId) sp.set("clienteId", filtros.clienteId);
     if (filtros.desde) sp.set("desde", filtros.desde);
     if (filtros.hasta) sp.set("hasta", filtros.hasta);
-    const res = await fetch(`/api/transferencias?${sp.toString()}`);
-    if (res.ok) {
-      const data = await res.json();
-      setItems(data.items);
-      setTotal(data.total);
-      setResumen(data.resumen ?? {});
-    }
-  }, [page, filtros]);
+    return `/api/transferencias?${sp.toString()}`;
+  }, [page, qDebounced, filtros.estado, filtros.clienteId, filtros.desde, filtros.hasta]);
 
-  useEffect(() => {
-    const t = setTimeout(cargar, 200);
-    return () => clearTimeout(t);
-  }, [cargar]);
+  const { data: listData, mutate: mutateList } = useSWR<{
+    items: Transferencia[];
+    total: number;
+    resumen: Resumen;
+  }>(listKey);
+  const items = listData?.items ?? [];
+  const total = listData?.total ?? 0;
+  const resumen = listData?.resumen ?? {};
+
+  // Refresca la lista actual y marca el dashboard para revalidar.
+  const cargar = async () => {
+    await mutateList();
+    globalMutate("/api/dashboard");
+  };
 
   const cuentasDelCliente = (clienteId: string): CuentaOpt[] =>
     clientes.find((c) => c.id === clienteId)?.cuentas ?? [];

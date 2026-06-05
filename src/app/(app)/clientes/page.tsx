@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import useSWR from "swr";
 import { BANCOS } from "@/lib/bancos";
 import { toast } from "@/lib/toast";
 import BancoSelect from "@/components/BancoSelect";
-import { IconTrash, IconEye, IconEyeOff, IconPlus } from "@/components/icons";
+import { IconTrash, IconEye, IconEyeOff } from "@/components/icons";
 
 type Cuenta = {
   id: string;
@@ -25,20 +26,21 @@ type Cliente = {
 };
 
 export default function ClientesPage() {
-  const [clientes, setClientes] = useState<Cliente[]>([]);
   const [q, setQ] = useState("");
+  const [qDebounced, setQDebounced] = useState("");
   const [nuevo, setNuevo] = useState({ nombre: "", alias: "", notas: "" });
   const [guardando, setGuardando] = useState(false);
 
-  const cargar = useCallback(async () => {
-    const res = await fetch(`/api/clientes?q=${encodeURIComponent(q)}`);
-    if (res.ok) setClientes(await res.json());
+  // Espera 250 ms tras dejar de teclear antes de pedir al servidor.
+  useEffect(() => {
+    const t = setTimeout(() => setQDebounced(q), 250);
+    return () => clearTimeout(t);
   }, [q]);
 
-  useEffect(() => {
-    const t = setTimeout(cargar, 200);
-    return () => clearTimeout(t);
-  }, [cargar]);
+  const { data: clientes = [], mutate } = useSWR<Cliente[]>(
+    `/api/clientes?q=${encodeURIComponent(qDebounced)}`,
+  );
+  const cargar = () => mutate();
 
   async function crearCliente(e: React.FormEvent) {
     e.preventDefault();

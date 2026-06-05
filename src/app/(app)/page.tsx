@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import useSWR from "swr";
 import Link from "next/link";
 import { formatMonto, formatFecha } from "@/lib/format";
+import { Skeleton } from "@/components/Skeleton";
 import {
   IconPlus,
   IconClock,
@@ -31,17 +32,10 @@ type Dashboard = {
 };
 
 export default function DashboardPage() {
-  const [data, setData] = useState<Dashboard | null>(null);
-
-  useEffect(() => {
-    fetch("/api/dashboard")
-      .then((r) => r.json())
-      .then(setData)
-      .catch(() => {});
-  }, []);
+  const { data } = useSWR<Dashboard>("/api/dashboard");
 
   if (!data) {
-    return <p className="text-slate-500">Cargando…</p>;
+    return <DashboardSkeleton />;
   }
 
   return (
@@ -145,6 +139,36 @@ export default function DashboardPage() {
             ))}
           </ul>
         )}
+      </div>
+    </div>
+  );
+}
+
+function DashboardSkeleton() {
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-8 w-40" />
+        <Skeleton className="h-10 w-44" />
+      </div>
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="card flex items-center gap-4">
+            <Skeleton className="h-12 w-12 shrink-0 rounded-2xl" />
+            <div className="min-w-0 flex-1">
+              <Skeleton className="h-3 w-16" />
+              <Skeleton className="mt-2 h-7 w-12" />
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="card">
+        <Skeleton className="h-5 w-40" />
+        <Skeleton className="mt-3 h-10 w-full" />
+      </div>
+      <div className="card">
+        <Skeleton className="h-5 w-48" />
+        <Skeleton className="mt-4 h-40 w-full" />
       </div>
     </div>
   );
