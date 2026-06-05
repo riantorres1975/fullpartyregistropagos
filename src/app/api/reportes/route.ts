@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
   const [items, agregado] = await Promise.all([
     prisma.transferencia.findMany({
       where,
-      orderBy: { fecha: "desc" },
+      orderBy: [{ cliente: { nombre: "asc" } }, { fecha: "desc" }],
       select: {
         fecha: true,
         monto: true,
@@ -39,6 +39,7 @@ export async function GET(request: NextRequest) {
         bancoDestino: true,
         referencia: true,
         estado: true,
+        clienteId: true,
         cliente: { select: { nombre: true } },
       },
     }),
@@ -67,7 +68,8 @@ export async function GET(request: NextRequest) {
     resumen,
     items: items.map((t) => ({
       fecha: t.fecha,
-      cliente: t.cliente?.nombre ?? "",
+      clienteId: t.clienteId ?? "",
+      cliente: t.cliente?.nombre ?? "Sin cliente",
       monto: t.monto,
       moneda: t.moneda,
       bancoOrigen: t.bancoOrigen,
