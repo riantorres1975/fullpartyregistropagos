@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { serializeCuenta } from "@/lib/serializers";
 import { requireSession } from "@/lib/guard";
+import { formatNombre } from "@/lib/format";
 
 const updateSchema = z.object({
   nombre: z.string().min(1).optional(),
@@ -49,6 +50,7 @@ export async function PUT(request: NextRequest, ctx: Ctx) {
   }
   const { metaMonto, ...resto } = parsed.data;
   const data: Prisma.ClienteUpdateInput = { ...resto };
+  if (typeof resto.nombre === "string") data.nombre = formatNombre(resto.nombre);
 
   // Manejo de la meta: al FIJARLA por primera vez se marca "metaDesde" = ahora,
   // para que el avance arranque de cero (no cuente lo ya transferido). Al

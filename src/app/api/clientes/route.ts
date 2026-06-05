@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { encrypt, last4 } from "@/lib/crypto";
 import { serializeCuenta } from "@/lib/serializers";
 import { requireSession } from "@/lib/guard";
+import { formatNombre } from "@/lib/format";
 
 const cuentaSchema = z.object({
   banco: z.string().min(1, "El banco es obligatorio"),
@@ -89,7 +90,7 @@ export async function POST(request: NextRequest) {
 
   const cliente = await prisma.cliente.create({
     data: {
-      nombre,
+      nombre: formatNombre(nombre),
       alias: alias || null,
       notas: notas || null,
       cuentas: cuentas

@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { BANCOS } from "@/lib/bancos";
-import { formatMonto, formatFecha } from "@/lib/format";
+import { formatMonto, formatFecha, agruparNumero } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import BancoSelect from "@/components/BancoSelect";
 import {
@@ -15,7 +15,11 @@ import {
   IconPencil,
   IconCheck,
   IconX,
+  IconCopy,
 } from "@/components/icons";
+
+const tipoLabel = (tipo: string) =>
+  tipo === "tarjeta" ? "Tarjeta" : tipo === "clabe" ? "CLABE" : "Cuenta";
 
 type Cuenta = {
   id: string;
@@ -147,11 +151,44 @@ function ClienteCard({
   onDelete: () => void;
 }) {
   const [abierto, setAbierto] = useState(false);
+  const [eligiendoCopia, setEligiendoCopia] = useState(false);
+  const [copiando, setCopiando] = useState(false);
+
+  // Copia los datos de una cuenta al portapapeles en formato:
+  // Nombre / Tipo: número agrupado / Banco
+  async function copiarCuenta(cuenta: Cuenta) {
+    setCopiando(true);
+    try {
+      const res = await fetch(`/api/cuentas/${cuenta.id}?reveal=1`);
+      if (!res.ok) throw new Error();
+      const { numero } = await res.json();
+      const texto = `${cliente.nombre}\n${tipoLabel(cuenta.tipo)}: ${agruparNumero(numero)}\n${cuenta.banco}`;
+      await navigator.clipboard.writeText(texto);
+      toast("Datos copiados");
+      setEligiendoCopia(false);
+    } catch {
+      toast("No se pudo copiar", "error");
+    } finally {
+      setCopiando(false);
+    }
+  }
+
+  function onCopiar() {
+    if (cliente.cuentas.length === 0) {
+      toast("Este cliente no tiene cuentas guardadas", "info");
+      return;
+    }
+    if (cliente.cuentas.length === 1) {
+      copiarCuenta(cliente.cuentas[0]);
+    } else {
+      setEligiendoCopia((v) => !v);
+    }
+  }
 
   return (
     <div className="card">
-      <div className="flex items-start justify-between">
-        <div>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
           <h3 className="font-semibold">{cliente.nombre}</h3>
           {cliente.alias && (
             <p className="text-sm text-slate-400">{cliente.alias}</p>
@@ -160,7 +197,18 @@ function ClienteCard({
             {cliente.cuentas.length} cuenta(s) · {cliente.totalTransferencias} transferencia(s)
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex shrink-0 gap-2">
+          {cliente.cuentas.length > 0 && (
+            <button
+              onClick={onCopiar}
+              className="btn-secondary px-3 py-1.5"
+              title="Copiar datos de la cuenta"
+              disabled={copiando}
+            >
+              <IconCopy className="h-4 w-4" />
+              <span className="hidden sm:inline">Copiar</span>
+            </button>
+          )}
           <button
             onClick={() => setAbierto((v) => !v)}
             className="btn-secondary px-3 py-1.5"
@@ -176,6 +224,35 @@ function ClienteCard({
           </button>
         </div>
       </div>
+
+      {/* Selector de cuenta a copiar (cuando hay varias). */}
+      {eligiendoCopia && cliente.cuentas.length > 1 && (
+        <div className="mt-3 rounded-lg border border-slate-200 p-2 dark:border-slate-700">
+          <p className="mb-1.5 px-1 text-xs font-medium text-slate-500">
+            ¿Cuál cuenta copio?
+          </p>
+          <div className="space-y-1">
+            {cliente.cuentas.map((cuenta) => (
+              <button
+                key={cuenta.id}
+                onClick={() => copiarCuenta(cuenta)}
+                disabled={copiando}
+                className="flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-slate-100 dark:hover:bg-slate-700"
+              >
+                <span className="truncate">
+                  {cuenta.banco}{" "}
+                  <span className="text-xs uppercase text-slate-400">
+                    ({tipoLabel(cuenta.tipo)})
+                  </span>
+                </span>
+                <span className="shrink-0 font-mono text-xs text-slate-500">
+                  {cuenta.enmascarado}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <MetaCliente cliente={cliente} onChange={onChange} />
 
@@ -367,7 +444,9 @@ function CuentaRow({ cuenta, onChange }: { cuenta: Cuenta; onChange: () => void 
           {cuenta.banco}{" "}
           <span className="text-xs uppercase text-slate-400">({cuenta.tipo})</span>
         </p>
-        <p className="font-mono">{revelado ?? cuenta.enmascarado}</p>
+        <p className="font-mono">
+          {revelado ? agruparNumero(revelado) : cuenta.enmascarado}
+        </p>
         {cuenta.titular && (
           <p className="text-xs text-slate-400">Titular: {cuenta.titular}</p>
         )}
