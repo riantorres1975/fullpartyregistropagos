@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { serializeCuenta } from "@/lib/serializers";
 import { requireSession } from "@/lib/guard";
@@ -46,10 +47,27 @@ export async function PUT(request: NextRequest, ctx: Ctx) {
       { status: 400 },
     );
   }
-  const cliente = await prisma.cliente.update({
-    where: { id },
-    data: parsed.data,
-  });
+  const { metaMonto, ...resto } = parsed.data;
+  const data: Prisma.ClienteUpdateInput = { ...resto };
+
+  // Manejo de la meta: al FIJARLA por primera vez se marca "metaDesde" = ahora,
+  // para que el avance arranque de cero (no cuente lo ya transferido). Al
+  // editar solo el monto se conserva la fecha; al quitarla se limpian ambos.
+  if (metaMonto !== undefined) {
+    if (metaMonto === null) {
+      data.metaMonto = null;
+      data.metaDesde = null;
+    } else {
+      data.metaMonto = metaMonto;
+      const actual = await prisma.cliente.findUnique({
+        where: { id },
+        select: { metaDesde: true },
+      });
+      if (!actual?.metaDesde) data.metaDesde = new Date();
+    }
+  }
+
+  const cliente = await prisma.cliente.update({ where: { id }, data });
   await prisma.auditLog.create({
     data: { accion: "editar", entidad: "cliente", entidadId: id, detalle: cliente.nombre },
   });

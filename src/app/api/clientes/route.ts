@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
   const auth = await requireSession();
   if ("error" in auth) return auth.error;
   const q = request.nextUrl.searchParams.get("q")?.trim();
-  const [clientes, sumas] = await Promise.all([
+  const [clientes, txs] = await Promise.all([
     prisma.cliente.findMany({
       where: q
         ? {
@@ -37,38 +37,39 @@ export async function GET(request: NextRequest) {
       orderBy: { nombre: "asc" },
       include: { cuentas: true, _count: { select: { transferencias: true } } },
     }),
-    // Avance de meta: suma de transferencias en MXN por cliente y estado.
-    prisma.transferencia.groupBy({
-      by: ["clienteId", "estado"],
+    // Transferencias MXN (con fecha de registro) para el avance de metas.
+    prisma.transferencia.findMany({
       where: { moneda: "MXN", clienteId: { not: null } },
-      _sum: { monto: true },
+      select: { clienteId: true, monto: true, estado: true, createdAt: true },
     }),
   ]);
 
-  const avancePorCliente = new Map<
-    string,
-    { pendiente: number; reflejada: number }
-  >();
-  for (const s of sumas) {
-    if (!s.clienteId) continue;
-    const a = avancePorCliente.get(s.clienteId) ?? { pendiente: 0, reflejada: 0 };
-    const suma = s._sum.monto ?? 0;
-    if (s.estado === "pendiente") a.pendiente = suma;
-    if (s.estado === "reflejada") a.reflejada = suma;
-    avancePorCliente.set(s.clienteId, a);
-  }
-
+  // Avance de la meta: cuenta SOLO transferencias registradas desde que se
+  // fijó (createdAt >= metaDesde), así arranca de cero y no toma lo ya transferido.
   return NextResponse.json(
-    clientes.map((c) => ({
-      id: c.id,
-      nombre: c.nombre,
-      alias: c.alias,
-      notas: c.notas,
-      meta: c.metaMonto,
-      avance: avancePorCliente.get(c.id) ?? { pendiente: 0, reflejada: 0 },
-      totalTransferencias: c._count.transferencias,
-      cuentas: c.cuentas.map(serializeCuenta),
-    })),
+    clientes.map((c) => {
+      const desde = c.metaDesde;
+      let pendiente = 0;
+      let reflejada = 0;
+      if (c.metaMonto != null && desde) {
+        for (const t of txs) {
+          if (t.clienteId !== c.id || t.createdAt < desde) continue;
+          if (t.estado === "reflejada") reflejada += t.monto;
+          else pendiente += t.monto;
+        }
+      }
+      return {
+        id: c.id,
+        nombre: c.nombre,
+        alias: c.alias,
+        notas: c.notas,
+        meta: c.metaMonto,
+        metaDesde: c.metaDesde,
+        avance: { pendiente, reflejada },
+        totalTransferencias: c._count.transferencias,
+        cuentas: c.cuentas.map(serializeCuenta),
+      };
+    }),
   );
 }
 

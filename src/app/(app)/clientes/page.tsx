@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { BANCOS } from "@/lib/bancos";
-import { formatMonto } from "@/lib/format";
+import { formatMonto, formatFecha } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import BancoSelect from "@/components/BancoSelect";
 import {
@@ -32,6 +32,7 @@ type Cliente = {
   alias: string | null;
   notas: string | null;
   meta: number | null;
+  metaDesde: string | null;
   avance: { pendiente: number; reflejada: number };
   totalTransferencias: number;
   cuentas: Cuenta[];
@@ -296,6 +297,11 @@ function MetaCliente({
       <div className="mb-1.5 flex items-center justify-between text-xs">
         <span className="flex items-center gap-1.5 font-medium text-slate-600 dark:text-slate-300">
           <IconChart className="h-3.5 w-3.5" /> Meta: {formatMonto(meta, "MXN")}
+          {cliente.metaDesde && (
+            <span className="font-normal text-slate-400">
+              desde {formatFecha(cliente.metaDesde)}
+            </span>
+          )}
         </span>
         <button
           onClick={() => {

@@ -29,6 +29,9 @@ model Cliente {
   notas     String?
   // Meta opcional de transferencia (monto objetivo en MXN). null = sin meta.
   metaMonto Float?
+  // Momento en que se fijó la meta. El avance solo cuenta transferencias
+  // registradas a partir de aquí (la meta arranca de cero al asignarla).
+  metaDesde DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
