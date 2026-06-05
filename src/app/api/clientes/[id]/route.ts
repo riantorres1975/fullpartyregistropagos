@@ -8,6 +8,8 @@ const updateSchema = z.object({
   nombre: z.string().min(1).optional(),
   alias: z.string().optional().nullable(),
   notas: z.string().optional().nullable(),
+  // Meta de transferencia en MXN. número positivo para fijarla, null para quitarla.
+  metaMonto: z.number().positive("La meta debe ser mayor a 0").nullable().optional(),
 });
 
 type Ctx = { params: Promise<{ id: string }> };

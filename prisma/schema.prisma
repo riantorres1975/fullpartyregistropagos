@@ -27,6 +27,8 @@ model Cliente {
   nombre    String
   alias     String?
   notas     String?
+  // Meta opcional de transferencia (monto objetivo en MXN). null = sin meta.
+  metaMonto Float?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

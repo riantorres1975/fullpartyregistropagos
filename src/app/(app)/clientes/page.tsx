@@ -3,9 +3,19 @@
 import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { BANCOS } from "@/lib/bancos";
+import { formatMonto } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import BancoSelect from "@/components/BancoSelect";
-import { IconTrash, IconEye, IconEyeOff } from "@/components/icons";
+import {
+  IconTrash,
+  IconEye,
+  IconEyeOff,
+  IconChart,
+  IconCheckCircle,
+  IconPencil,
+  IconCheck,
+  IconX,
+} from "@/components/icons";
 
 type Cuenta = {
   id: string;
@@ -21,6 +31,8 @@ type Cliente = {
   nombre: string;
   alias: string | null;
   notas: string | null;
+  meta: number | null;
+  avance: { pendiente: number; reflejada: number };
   totalTransferencias: number;
   cuentas: Cuenta[];
 };
@@ -164,6 +176,8 @@ function ClienteCard({
         </div>
       </div>
 
+      <MetaCliente cliente={cliente} onChange={onChange} />
+
       {abierto && (
         <div className="mt-4 space-y-3 border-t border-slate-100 pt-4 dark:border-slate-700">
           {cliente.cuentas.map((cuenta) => (
@@ -172,6 +186,151 @@ function ClienteCard({
           <NuevaCuenta clienteId={cliente.id} onChange={onChange} />
         </div>
       )}
+    </div>
+  );
+}
+
+// Meta de transferencia del cliente: barra de avance (reflejado + pendiente)
+// contra el objetivo en MXN, con edición inline. La meta es opcional.
+function MetaCliente({
+  cliente,
+  onChange,
+}: {
+  cliente: Cliente;
+  onChange: () => void;
+}) {
+  const [editando, setEditando] = useState(false);
+  const [valor, setValor] = useState(
+    cliente.meta != null ? String(cliente.meta) : "",
+  );
+  const [guardando, setGuardando] = useState(false);
+
+  async function guardar(metaMonto: number | null) {
+    setGuardando(true);
+    const res = await fetch(`/api/clientes/${cliente.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ metaMonto }),
+    });
+    setGuardando(false);
+    if (res.ok) {
+      setEditando(false);
+      onChange();
+      toast(metaMonto == null ? "Meta quitada" : "Meta guardada");
+    } else {
+      toast("No se pudo guardar la meta", "error");
+    }
+  }
+
+  // Sin meta y sin editar: botón para agregarla.
+  if (cliente.meta == null && !editando) {
+    return (
+      <button
+        onClick={() => {
+          setValor("");
+          setEditando(true);
+        }}
+        className="mt-3 flex items-center gap-1.5 text-xs font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+      >
+        <IconChart className="h-3.5 w-3.5" /> Agregar meta
+      </button>
+    );
+  }
+
+  // Modo edición.
+  if (editando) {
+    return (
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          const n = parseFloat(valor);
+          if (n > 0) guardar(n);
+        }}
+        className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3 dark:border-slate-700"
+      >
+        <span className="text-xs font-medium text-slate-500">Meta (MXN)</span>
+        <input
+          type="number"
+          step="0.01"
+          autoFocus
+          className="input max-w-[140px] py-1.5"
+          value={valor}
+          onChange={(e) => setValor(e.target.value)}
+          placeholder="0.00"
+        />
+        <button className="btn-primary px-3 py-1.5 text-xs" disabled={guardando}>
+          <IconCheck className="h-3.5 w-3.5" /> Guardar
+        </button>
+        <button
+          type="button"
+          onClick={() => setEditando(false)}
+          className="btn-secondary px-3 py-1.5 text-xs"
+        >
+          <IconX className="h-3.5 w-3.5" /> Cancelar
+        </button>
+        {cliente.meta != null && (
+          <button
+            type="button"
+            onClick={() => guardar(null)}
+            className="btn-danger px-3 py-1.5 text-xs"
+            disabled={guardando}
+          >
+            <IconTrash className="h-3.5 w-3.5" /> Quitar
+          </button>
+        )}
+      </form>
+    );
+  }
+
+  // Con meta: barra de avance.
+  const meta = cliente.meta!;
+  const { pendiente, reflejada } = cliente.avance;
+  const total = pendiente + reflejada;
+  const cumplida = total >= meta;
+  const falta = Math.max(0, meta - total);
+  const anchoRef = Math.min(100, (reflejada / meta) * 100);
+  const anchoPend = Math.min(100 - anchoRef, (pendiente / meta) * 100);
+
+  return (
+    <div className="mt-3 border-t border-slate-100 pt-3 dark:border-slate-700">
+      <div className="mb-1.5 flex items-center justify-between text-xs">
+        <span className="flex items-center gap-1.5 font-medium text-slate-600 dark:text-slate-300">
+          <IconChart className="h-3.5 w-3.5" /> Meta: {formatMonto(meta, "MXN")}
+        </span>
+        <button
+          onClick={() => {
+            setValor(String(meta));
+            setEditando(true);
+          }}
+          className="flex items-center gap-1 text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400"
+          title="Editar meta"
+        >
+          <IconPencil className="h-3.5 w-3.5" /> Editar
+        </button>
+      </div>
+
+      <div className="flex h-2.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
+        <div className="bg-emerald-500" style={{ width: `${anchoRef}%` }} />
+        <div className="bg-amber-400" style={{ width: `${anchoPend}%` }} />
+      </div>
+
+      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
+        <span className="flex items-center gap-1 text-emerald-600">
+          <IconCheckCircle className="h-3.5 w-3.5" /> {formatMonto(reflejada, "MXN")}
+        </span>
+        {pendiente > 0 && (
+          <span className="text-amber-600">
+            + {formatMonto(pendiente, "MXN")} pendiente
+          </span>
+        )}
+        {cumplida ? (
+          <span className="font-semibold text-emerald-600">✓ Meta cumplida</span>
+        ) : (
+          <span className="text-slate-500">
+            Faltan {formatMonto(falta, "MXN")}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
