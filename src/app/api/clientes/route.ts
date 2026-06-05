@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { encrypt, last4 } from "@/lib/crypto";
 import { serializeCuenta } from "@/lib/serializers";
+import { requireSession } from "@/lib/guard";
 
 const cuentaSchema = z.object({
   banco: z.string().min(1, "El banco es obligatorio"),
@@ -20,6 +21,8 @@ const clienteSchema = z.object({
 
 // GET /api/clientes  -> lista de clientes con sus cuentas (enmascaradas)
 export async function GET(request: NextRequest) {
+  const auth = await requireSession();
+  if ("error" in auth) return auth.error;
   const q = request.nextUrl.searchParams.get("q")?.trim();
   const clientes = await prisma.cliente.findMany({
     where: q
@@ -48,6 +51,8 @@ export async function GET(request: NextRequest) {
 
 // POST /api/clientes  -> crea cliente (y opcionalmente sus cuentas)
 export async function POST(request: NextRequest) {
+  const auth = await requireSession();
+  if ("error" in auth) return auth.error;
   const body = await request.json().catch(() => null);
   const parsed = clienteSchema.safeParse(body);
   if (!parsed.success) {

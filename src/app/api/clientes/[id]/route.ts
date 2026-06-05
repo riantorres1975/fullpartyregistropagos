@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { serializeCuenta } from "@/lib/serializers";
+import { requireSession } from "@/lib/guard";
 
 const updateSchema = z.object({
   nombre: z.string().min(1).optional(),
@@ -12,6 +13,8 @@ const updateSchema = z.object({
 type Ctx = { params: Promise<{ id: string }> };
 
 export async function GET(_req: NextRequest, ctx: Ctx) {
+  const auth = await requireSession();
+  if ("error" in auth) return auth.error;
   const { id } = await ctx.params;
   const cliente = await prisma.cliente.findUnique({
     where: { id },
@@ -30,6 +33,8 @@ export async function GET(_req: NextRequest, ctx: Ctx) {
 }
 
 export async function PUT(request: NextRequest, ctx: Ctx) {
+  const auth = await requireSession();
+  if ("error" in auth) return auth.error;
   const { id } = await ctx.params;
   const body = await request.json().catch(() => null);
   const parsed = updateSchema.safeParse(body);
@@ -50,6 +55,8 @@ export async function PUT(request: NextRequest, ctx: Ctx) {
 }
 
 export async function DELETE(_req: NextRequest, ctx: Ctx) {
+  const auth = await requireSession();
+  if ("error" in auth) return auth.error;
   const { id } = await ctx.params;
   await prisma.cliente.delete({ where: { id } });
   await prisma.auditLog.create({

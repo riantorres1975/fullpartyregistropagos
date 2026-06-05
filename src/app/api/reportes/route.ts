@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { requireSession } from "@/lib/guard";
 
 // GET /api/reportes -> TODAS las transferencias (con filtros opcionales)
 // para la vista de impresión. Liviano: no carga comprobantes.
 export async function GET(request: NextRequest) {
+  const auth = await requireSession();
+  if ("error" in auth) return auth.error;
   const sp = request.nextUrl.searchParams;
   const q = sp.get("q")?.trim();
   const estado = sp.get("estado")?.trim();

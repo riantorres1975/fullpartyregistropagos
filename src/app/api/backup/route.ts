@@ -1,9 +1,12 @@
 import { prisma } from "@/lib/prisma";
+import { requireSession } from "@/lib/guard";
 
 // GET /api/backup -> respaldo COMPLETO en JSON (descargable).
 // Las cuentas/tarjetas se incluyen CIFRADAS: el respaldo solo es
 // restaurable con la misma ENCRYPTION_KEY. No expone datos sensibles.
 export async function GET() {
+  const auth = await requireSession();
+  if ("error" in auth) return auth.error;
   const [clientes, cuentas, transferencias] = await Promise.all([
     prisma.cliente.findMany(),
     prisma.cuentaBancaria.findMany(),

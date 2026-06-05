@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { decrypt } from "@/lib/crypto";
+import { requireSession } from "@/lib/guard";
 
 type Ctx = { params: Promise<{ id: string }> };
 
 // GET /api/cuentas/[id]?reveal=1 -> devuelve el número COMPLETO descifrado.
 // Solo se usa cuando el usuario pulsa "Mostrar". Queda registrado.
 export async function GET(request: NextRequest, ctx: Ctx) {
+  const auth = await requireSession();
+  if ("error" in auth) return auth.error;
   const { id } = await ctx.params;
   const reveal = request.nextUrl.searchParams.get("reveal");
   if (!reveal) {
@@ -23,6 +26,8 @@ export async function GET(request: NextRequest, ctx: Ctx) {
 }
 
 export async function DELETE(_req: NextRequest, ctx: Ctx) {
+  const auth = await requireSession();
+  if ("error" in auth) return auth.error;
   const { id } = await ctx.params;
   await prisma.cuentaBancaria.delete({ where: { id } });
   await prisma.auditLog.create({

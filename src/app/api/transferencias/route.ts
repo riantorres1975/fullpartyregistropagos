@@ -3,6 +3,7 @@ import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { maskNumero } from "@/lib/crypto";
+import { requireSession } from "@/lib/guard";
 
 const schema = z.object({
   fecha: z.string().min(1, "La fecha es obligatoria"),
@@ -15,11 +16,15 @@ const schema = z.object({
   referencia: z.string().optional().nullable(),
   estado: z.enum(["pendiente", "reflejada"]).default("pendiente"),
   observaciones: z.string().optional().nullable(),
-  comprobante: z.string().optional().nullable(),
+  // Imagen del comprobante en base64 (WebP). Límite ~8 MB de texto base64
+  // (~6 MB de imagen) para evitar payloads abusivos / engorde de BD.
+  comprobante: z.string().max(8_000_000, "Comprobante demasiado grande").optional().nullable(),
 });
 
 // GET /api/transferencias?q=&estado=&desde=&hasta=&page=&pageSize=
 export async function GET(request: NextRequest) {
+  const auth = await requireSession();
+  if ("error" in auth) return auth.error;
   const sp = request.nextUrl.searchParams;
   const q = sp.get("q")?.trim();
   const estado = sp.get("estado")?.trim();
@@ -110,6 +115,8 @@ export async function GET(request: NextRequest) {
 
 // POST /api/transferencias
 export async function POST(request: NextRequest) {
+  const auth = await requireSession();
+  if ("error" in auth) return auth.error;
   const body = await request.json().catch(() => null);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {

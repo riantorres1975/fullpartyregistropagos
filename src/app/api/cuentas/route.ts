@@ -3,6 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { encrypt, last4 } from "@/lib/crypto";
 import { serializeCuenta } from "@/lib/serializers";
+import { requireSession } from "@/lib/guard";
 
 const schema = z.object({
   clienteId: z.string().min(1),
@@ -14,6 +15,8 @@ const schema = z.object({
 
 // POST /api/cuentas -> agrega una cuenta/tarjeta a un cliente
 export async function POST(request: NextRequest) {
+  const auth = await requireSession();
+  if ("error" in auth) return auth.error;
   const body = await request.json().catch(() => null);
   const parsed = schema.safeParse(body);
   if (!parsed.success) {

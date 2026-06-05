@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { requireSession } from "@/lib/guard";
 
 const schema = z.object({
   fecha: z.string().optional(),
@@ -13,13 +14,15 @@ const schema = z.object({
   referencia: z.string().optional().nullable(),
   estado: z.enum(["pendiente", "reflejada"]).optional(),
   observaciones: z.string().optional().nullable(),
-  comprobante: z.string().optional().nullable(),
+  comprobante: z.string().max(8_000_000, "Comprobante demasiado grande").optional().nullable(),
 });
 
 type Ctx = { params: Promise<{ id: string }> };
 
 // GET /api/transferencias/[id] -> registro completo (incluye comprobante)
 export async function GET(_req: NextRequest, ctx: Ctx) {
+  const auth = await requireSession();
+  if ("error" in auth) return auth.error;
   const { id } = await ctx.params;
   const t = await prisma.transferencia.findUnique({ where: { id } });
   if (!t) {
@@ -29,6 +32,8 @@ export async function GET(_req: NextRequest, ctx: Ctx) {
 }
 
 export async function PUT(request: NextRequest, ctx: Ctx) {
+  const auth = await requireSession();
+  if ("error" in auth) return auth.error;
   const { id } = await ctx.params;
   const body = await request.json().catch(() => null);
   const parsed = schema.safeParse(body);
@@ -62,6 +67,8 @@ export async function PUT(request: NextRequest, ctx: Ctx) {
 }
 
 export async function DELETE(_req: NextRequest, ctx: Ctx) {
+  const auth = await requireSession();
+  if ("error" in auth) return auth.error;
   const { id } = await ctx.params;
   await prisma.transferencia.delete({ where: { id } });
   await prisma.auditLog.create({

@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { requireSession } from "@/lib/guard";
 
 // GET /api/dashboard -> totales para la pantalla de inicio
 export async function GET() {
+  const auth = await requireSession();
+  if ("error" in auth) return auth.error;
   // Inicio del mes de hace 5 meses (para 6 meses incluyendo el actual)
   const ahora = new Date();
   const inicio6Meses = new Date(ahora.getFullYear(), ahora.getMonth() - 5, 1);

@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
+import { requireSession } from "@/lib/guard";
 
 function csvCell(value: unknown): string {
   const s = value === null || value === undefined ? "" : String(value);
@@ -12,6 +13,8 @@ function csvCell(value: unknown): string {
 
 // GET /api/export/transferencias -> archivo CSV (abre en Excel)
 export async function GET(request: NextRequest) {
+  const auth = await requireSession();
+  if ("error" in auth) return auth.error;
   const sp = request.nextUrl.searchParams;
   const estado = sp.get("estado")?.trim();
   const clienteId = sp.get("clienteId")?.trim();
