@@ -96,12 +96,14 @@ export default function ReportesPage() {
             Genera un reporte agrupado por cliente con subtotales, listo para
             imprimir o guardar como PDF.
           </p>
-          <button
-            onClick={() => window.open("/imprimir" + queryString(), "_blank")}
-            className="btn-primary"
+          <a
+            href={"/imprimir" + queryString()}
+            target="_blank"
+            rel="noopener"
+            className="btn-primary inline-flex"
           >
             🖨️ Imprimir / Guardar PDF
-          </button>
+          </a>
         </div>
 
         <hr className="border-slate-100 dark:border-slate-700" />
