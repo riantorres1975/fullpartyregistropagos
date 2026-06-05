@@ -20,15 +20,18 @@ const securityHeaders = [
   },
   // CSP: solo recursos del propio origen. 'unsafe-inline' es necesario para
   // los estilos de Tailwind y para los scripts inline de hidratación que
-  // inyecta el App Router de Next (sin ellos, la app no carga). Aun así, se
-  // bloquean scripts de orígenes externos y la incrustación en iframes.
+  // inyecta el App Router de Next (sin ellos, la app no carga).
+  // 'wasm-unsafe-eval' permite compilar el WebAssembly del OCR (Tesseract);
+  // worker-src 'self' permite su Web Worker. Todos los assets del OCR están
+  // auto-hospedados, así que NO hace falta abrir orígenes externos.
   {
     key: "Content-Security-Policy",
     value: [
       "default-src 'self'",
       "img-src 'self' data: blob:",
       "style-src 'self' 'unsafe-inline'",
-      "script-src 'self' 'unsafe-inline'",
+      "script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'",
+      "worker-src 'self'",
       "font-src 'self' data:",
       "connect-src 'self'",
       "object-src 'none'",

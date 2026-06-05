@@ -14,6 +14,14 @@ export async function analizarRecibo(
 ): Promise<DatosRecibo> {
   const Tesseract = (await import("tesseract.js")).default;
   const { data } = await Tesseract.recognize(dataUrl, "spa", {
+    // Assets auto-hospedados en /public/tesseract (ver scripts/copy-tesseract-assets.mjs).
+    // Evita CDNs externos para que la Content-Security-Policy siga restringida.
+    workerPath: "/tesseract/worker.min.js",
+    corePath: "/tesseract/core",
+    langPath: "/tesseract/lang",
+    // Carga el worker como script normal del mismo origen (no via blob:),
+    // así la CSP no necesita abrir blob: en worker-src/script-src.
+    workerBlobURL: false,
     logger: (m: { status: string; progress: number }) => {
       if (m.status === "recognizing text" && onProgreso) {
         onProgreso(Math.round(m.progress * 100));

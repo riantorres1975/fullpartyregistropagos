@@ -41,6 +41,10 @@ yarn-error.log*
 # vercel
 .vercel
 
+# assets de Tesseract auto-hospedados (se generan en postinstall/build
+# desde node_modules; reproducibles, no se versionan)
+/public/tesseract/
+
 # herramientas internas del asistente (no forman parte de la app)
 .agents/
 .claude/

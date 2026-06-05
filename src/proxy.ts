@@ -35,8 +35,10 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  // Protege todo excepto archivos estáticos y de Next.
+  // Protege todo excepto archivos estáticos y de Next, y los assets públicos
+  // del OCR (Tesseract) auto-hospedados en /tesseract/ (no son sensibles y el
+  // Web Worker debe poder cargarlos sin la redirección de login).
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|icons/).*)",
+    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|icons/|tesseract/).*)",
   ],
 };
