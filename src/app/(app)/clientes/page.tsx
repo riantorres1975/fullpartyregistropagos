@@ -16,6 +16,9 @@ import {
   IconCheck,
   IconX,
   IconCopy,
+  IconSearch,
+  IconPlus,
+  IconUsers,
 } from "@/components/icons";
 
 const tipoLabel = (tipo: string) =>
@@ -47,6 +50,7 @@ export default function ClientesPage() {
   const [qDebounced, setQDebounced] = useState("");
   const [nuevo, setNuevo] = useState({ nombre: "", alias: "", notas: "" });
   const [guardando, setGuardando] = useState(false);
+  const [mostrarForm, setMostrarForm] = useState(false);
 
   // Espera 250 ms tras dejar de teclear antes de pedir al servidor.
   useEffect(() => {
@@ -71,6 +75,7 @@ export default function ClientesPage() {
     setGuardando(false);
     if (res.ok) {
       setNuevo({ nombre: "", alias: "", notas: "" });
+      setMostrarForm(false);
       cargar();
       toast("Cliente agregado");
     } else {
@@ -85,48 +90,102 @@ export default function ClientesPage() {
     toast("Cliente eliminado");
   }
 
+  const buscando = qDebounced.trim().length > 0;
+
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Clientes</h1>
+    <div className="space-y-5">
+      {/* Encabezado: título + botón de alta */}
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="flex items-center gap-2 text-2xl font-bold">
+          <IconUsers className="h-6 w-6 text-violet-500" /> Clientes
+        </h1>
+        <button
+          onClick={() => setMostrarForm((v) => !v)}
+          className={mostrarForm ? "btn-secondary" : "btn-primary"}
+        >
+          {mostrarForm ? (
+            <>
+              <IconX className="h-4 w-4" /> Cancelar
+            </>
+          ) : (
+            <>
+              <IconPlus className="h-4 w-4" /> Nuevo cliente
+            </>
+          )}
+        </button>
+      </div>
 
-      <form onSubmit={crearCliente} className="card grid gap-4 sm:grid-cols-3">
-        <div>
-          <label className="label">Nombre *</label>
-          <input
-            className="input"
-            value={nuevo.nombre}
-            onChange={(e) => setNuevo({ ...nuevo, nombre: e.target.value })}
-            placeholder="Nombre del cliente"
-            required
-          />
-        </div>
-        <div>
-          <label className="label">Alias</label>
-          <input
-            className="input"
-            value={nuevo.alias}
-            onChange={(e) => setNuevo({ ...nuevo, alias: e.target.value })}
-            placeholder="Opcional"
-          />
-        </div>
-        <div className="flex items-end">
-          <button className="btn-primary w-full" disabled={guardando}>
-            {guardando ? "Guardando…" : "+ Agregar cliente"}
+      {/* Formulario de alta (plegable, solo cuando se pide) */}
+      {mostrarForm && (
+        <form
+          onSubmit={crearCliente}
+          className="card grid gap-4 border-2 border-violet-200 sm:grid-cols-3 dark:border-violet-500/30"
+        >
+          <div className="sm:col-span-3">
+            <h2 className="flex items-center gap-2 font-semibold">
+              <IconPlus className="h-4 w-4 text-violet-500" /> Agregar nuevo cliente
+            </h2>
+          </div>
+          <div>
+            <label className="label">Nombre *</label>
+            <input
+              className="input"
+              autoFocus
+              value={nuevo.nombre}
+              onChange={(e) => setNuevo({ ...nuevo, nombre: e.target.value })}
+              placeholder="Nombre del cliente"
+              required
+            />
+          </div>
+          <div>
+            <label className="label">Alias</label>
+            <input
+              className="input"
+              value={nuevo.alias}
+              onChange={(e) => setNuevo({ ...nuevo, alias: e.target.value })}
+              placeholder="Opcional"
+            />
+          </div>
+          <div className="flex items-end">
+            <button className="btn-primary w-full" disabled={guardando}>
+              {guardando ? "Guardando…" : "Guardar cliente"}
+            </button>
+          </div>
+        </form>
+      )}
+
+      {/* Buscador destacado, claramente distinto del alta */}
+      <div className="relative">
+        <IconSearch className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+        <input
+          className="input pl-11 pr-10"
+          placeholder="Buscar cliente por nombre o alias…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+        {q && (
+          <button
+            onClick={() => setQ("")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-700"
+            title="Limpiar búsqueda"
+          >
+            <IconX className="h-4 w-4" />
           </button>
-        </div>
-      </form>
-
-      <input
-        className="input"
-        placeholder="Buscar cliente…"
-        value={q}
-        onChange={(e) => setQ(e.target.value)}
-      />
+        )}
+      </div>
 
       {clientes.length === 0 ? (
-        <p className="text-sm text-slate-400">No hay clientes todavía.</p>
+        <p className="rounded-xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-400 dark:border-slate-700">
+          {buscando
+            ? `No se encontró ningún cliente con “${qDebounced}”.`
+            : "No hay clientes todavía. Usa “Nuevo cliente” para agregar el primero."}
+        </p>
       ) : (
         <div className="space-y-4">
+          <p className="text-xs text-slate-400">
+            {clientes.length} cliente{clientes.length !== 1 ? "s" : ""}
+            {buscando ? ` encontrado${clientes.length !== 1 ? "s" : ""}` : ""}
+          </p>
           {clientes.map((c) => (
             <ClienteCard
               key={c.id}
