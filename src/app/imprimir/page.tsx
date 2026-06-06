@@ -75,7 +75,7 @@ export default function ImprimirPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl bg-white p-8 text-slate-900">
+    <div className="mx-auto max-w-4xl bg-white p-4 text-slate-900 sm:p-8">
       {/* Barra de acciones (no se imprime) */}
       <div className="mb-6 flex gap-2 print:hidden">
         <button

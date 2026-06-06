@@ -40,11 +40,11 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">Resumen</h1>
-        <Link href="/transferencias" className="btn-primary">
+        <Link href="/transferencias" className="btn-primary shrink-0">
           <IconPlus className="h-4 w-4" />
-          Nueva transferencia
+          Nueva <span className="hidden sm:inline">transferencia</span>
         </Link>
       </div>
 
@@ -115,12 +115,12 @@ export default function DashboardPage() {
         ) : (
           <ul className="divide-y divide-slate-100 dark:divide-slate-700">
             {data.ultimas.map((t) => (
-              <li key={t.id} className="flex items-center justify-between py-2 text-sm">
-                <div>
-                  <p className="font-medium">{t.cliente ?? "Sin cliente"}</p>
+              <li key={t.id} className="flex items-center justify-between gap-3 py-2 text-sm">
+                <div className="min-w-0">
+                  <p className="truncate font-medium">{t.cliente ?? "Sin cliente"}</p>
                   <p className="text-xs text-slate-400">{formatFecha(t.fecha)}</p>
                 </div>
-                <div className="text-right">
+                <div className="shrink-0 text-right">
                   <p className="font-semibold">{formatMonto(t.monto, t.moneda)}</p>
                   <span
                     className={`flex items-center justify-end gap-1 text-xs ${
