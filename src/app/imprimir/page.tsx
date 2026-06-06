@@ -46,13 +46,6 @@ export default function ImprimirPage() {
       .catch(() => {});
   }, []);
 
-  useEffect(() => {
-    if (data) {
-      const t = setTimeout(() => window.print(), 500);
-      return () => clearTimeout(t);
-    }
-  }, [data]);
-
   if (!data) {
     return <p style={{ padding: 24 }}>Generando reporte…</p>;
   }
