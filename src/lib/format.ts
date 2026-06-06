@@ -41,6 +41,19 @@ export function formatNombre(nombre: string): string {
     .join(" ");
 }
 
+// Detecta el tipo de número bancario según la cantidad de dígitos (estándar MX):
+// CLABE = 18, tarjeta = 15 o 16, y cualquier otra cosa con largo razonable = cuenta.
+// Devuelve null si aún hay muy pocos dígitos para decidir.
+export function detectarTipoCuenta(
+  numero: string,
+): "cuenta" | "tarjeta" | "clabe" | null {
+  const d = numero.replace(/\D/g, "");
+  if (d.length === 18) return "clabe";
+  if (d.length === 15 || d.length === 16) return "tarjeta";
+  if (d.length >= 6) return "cuenta";
+  return null;
+}
+
 // Agrupa un número (cuenta/CLABE/tarjeta) en bloques de 4 dígitos para que
 // sea fácil de leer, como en los bancos. Ej: "012180001261680354" ->
 // "0121 8000 1261 6803 54".

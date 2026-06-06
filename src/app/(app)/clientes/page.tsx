@@ -3,7 +3,12 @@
 import { useEffect, useState } from "react";
 import useSWR from "swr";
 import { BANCOS } from "@/lib/bancos";
-import { formatMonto, formatFecha, agruparNumero } from "@/lib/format";
+import {
+  formatMonto,
+  formatFecha,
+  agruparNumero,
+  detectarTipoCuenta,
+} from "@/lib/format";
 import { toast } from "@/lib/toast";
 import BancoSelect from "@/components/BancoSelect";
 import {
@@ -549,7 +554,20 @@ function NuevaCuenta({
     titular: "",
     numero: "",
   });
+  // Mientras sea false, el tipo se detecta solo al teclear el número.
+  // Si el usuario elige el tipo a mano, dejamos de auto-cambiarlo.
+  const [tipoManual, setTipoManual] = useState(false);
+  const [autodetectado, setAutodetectado] = useState(false);
   const [guardando, setGuardando] = useState(false);
+
+  function onNumeroChange(numero: string) {
+    setForm((f) => {
+      if (tipoManual) return { ...f, numero };
+      const det = detectarTipoCuenta(numero);
+      setAutodetectado(!!det);
+      return { ...f, numero, tipo: det ?? f.tipo };
+    });
+  }
 
   async function agregar(e: React.FormEvent) {
     e.preventDefault();
@@ -563,6 +581,8 @@ function NuevaCuenta({
     setGuardando(false);
     if (res.ok) {
       setForm({ banco: "", tipo: "cuenta", titular: "", numero: "" });
+      setTipoManual(false);
+      setAutodetectado(false);
       onChange();
       toast("Cuenta agregada y cifrada");
     } else {
@@ -581,20 +601,32 @@ function NuevaCuenta({
         onChange={(b) => setForm({ ...form, banco: b })}
         placeholder="Banco…"
       />
-      <select
-        className="input"
-        value={form.tipo}
-        onChange={(e) => setForm({ ...form, tipo: e.target.value })}
-      >
-        <option value="cuenta">Cuenta</option>
-        <option value="tarjeta">Tarjeta</option>
-        <option value="clabe">CLABE</option>
-      </select>
+      <div className="relative">
+        <select
+          className="input"
+          value={form.tipo}
+          onChange={(e) => {
+            setTipoManual(true);
+            setAutodetectado(false);
+            setForm({ ...form, tipo: e.target.value });
+          }}
+        >
+          <option value="cuenta">Cuenta</option>
+          <option value="tarjeta">Tarjeta</option>
+          <option value="clabe">CLABE</option>
+        </select>
+        {autodetectado && !tipoManual && (
+          <span className="pointer-events-none absolute -top-2 right-2 rounded-full bg-violet-100 px-1.5 text-[10px] font-semibold text-violet-600 dark:bg-violet-500/20 dark:text-violet-300">
+            auto
+          </span>
+        )}
+      </div>
       <input
         className="input"
         placeholder="Número"
+        inputMode="numeric"
         value={form.numero}
-        onChange={(e) => setForm({ ...form, numero: e.target.value })}
+        onChange={(e) => onNumeroChange(e.target.value)}
         required
       />
       <input
