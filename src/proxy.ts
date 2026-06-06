@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { verifySession, SESSION_COOKIE } from "@/lib/auth";
 
 // Rutas públicas que no requieren sesión.
-const PUBLIC_PATHS = ["/login", "/api/auth/login"];
+// /api/resumen-diario lo dispara el Cron de Vercel (sin cookie); el propio
+// endpoint valida CRON_SECRET o sesión, así que es seguro dejarlo pasar aquí.
+const PUBLIC_PATHS = ["/login", "/api/auth/login", "/api/resumen-diario"];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

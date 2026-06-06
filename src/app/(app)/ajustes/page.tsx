@@ -9,6 +9,7 @@ import {
   IconCard,
   IconDownload,
   IconSettings,
+  IconWhatsApp,
 } from "@/components/icons";
 
 export default function AjustesPage() {
@@ -18,8 +19,62 @@ export default function AjustesPage() {
         <IconSettings className="h-6 w-6 text-violet-500" /> Ajustes
       </h1>
       <InstalarApp />
+      <ResumenWhatsapp />
       <CambiarContrasena />
       <ConfigurarPin />
+    </div>
+  );
+}
+
+// ─── Resumen diario por WhatsApp (CallMeBot) ─────────────────────────────────
+function ResumenWhatsapp() {
+  const [enviando, setEnviando] = useState(false);
+
+  async function probar() {
+    setEnviando(true);
+    try {
+      const res = await fetch("/api/resumen-diario");
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) toast("Resumen enviado. Revisa tu WhatsApp.");
+      else toast(d.error ?? "No se pudo enviar el resumen", "error");
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <div className="card space-y-3">
+      <h2 className="flex items-center gap-2 font-semibold">
+        <IconWhatsApp className="h-5 w-5 text-green-600" /> Resumen diario por
+        WhatsApp
+      </h2>
+      <p className="text-sm text-slate-500">
+        Cada día a las 9:00 p.m. recibes en tu WhatsApp un resumen de los
+        movimientos del día. Es gratis con CallMeBot. Configúralo una sola vez:
+      </p>
+      <ol className="ml-4 list-decimal space-y-1 text-sm text-slate-500">
+        <li>
+          Agrega a tus contactos el número{" "}
+          <strong>+34 644 51 95 23</strong> (CallMeBot).
+        </li>
+        <li>
+          Mándale por WhatsApp el mensaje:{" "}
+          <strong>“I allow callmebot to send me messages”</strong>.
+        </li>
+        <li>Te responden con tu apikey personal (gratis).</li>
+        <li>
+          Pásame tu número y esa apikey para guardarlos en el servidor
+          (variables <code>CALLMEBOT_PHONE</code> y <code>CALLMEBOT_APIKEY</code>).
+        </li>
+      </ol>
+      <button
+        onClick={probar}
+        className="btn-secondary"
+        disabled={enviando}
+      >
+        <IconWhatsApp className="h-4 w-4 text-green-600" />
+        {enviando ? "Enviando…" : "Enviar prueba ahora"}
+      </button>
     </div>
   );
 }
