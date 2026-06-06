@@ -75,7 +75,10 @@ export default function ImprimirPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl bg-white p-4 text-slate-900 sm:p-8">
+    <div
+      className="mx-auto max-w-4xl bg-white p-4 text-slate-900 sm:p-8"
+      style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}
+    >
       {/* Barra de acciones (no se imprime) */}
       <div className="mb-6 flex gap-2 print:hidden">
         <button
@@ -92,18 +95,26 @@ export default function ImprimirPage() {
         </button>
       </div>
 
-      <div className="mb-4 border-b-2 border-slate-800 pb-3">
-        <h1 className="flex items-center gap-2 text-2xl font-bold">
-          <IconCard className="h-6 w-6" /> Reporte de Transferencias por Cliente
-        </h1>
-        <p className="text-sm text-slate-500">Full Party</p>
-        <p className="text-xs text-slate-500">
-          Generado: {formatFecha(data.generadoEn)} · {data.total} registro(s) ·{" "}
-          {grupos.length} cliente(s)
-        </p>
-        {filtros.length > 0 && (
-          <p className="text-xs font-medium text-slate-600">{filtros.join(" · ")}</p>
-        )}
+      <div className="mb-5 flex items-center gap-3 border-b-2 border-violet-600 pb-3">
+        <div
+          className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-white"
+          style={{ background: "linear-gradient(135deg,#6d28d9 0%,#db2777 100%)" }}
+        >
+          <IconCard className="h-7 w-7" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <h1 className="text-xl font-extrabold leading-tight">
+            Mis Transferencias
+          </h1>
+          <p className="text-sm font-medium text-violet-700">
+            Reporte por cliente · Full Party
+          </p>
+          <p className="mt-0.5 text-xs text-slate-500">
+            Generado: {formatFecha(data.generadoEn)} · {data.total} registro(s) ·{" "}
+            {grupos.length} cliente(s)
+            {filtros.length > 0 ? ` · ${filtros.join(" · ")}` : ""}
+          </p>
+        </div>
       </div>
 
       {grupos.length === 0 && (
