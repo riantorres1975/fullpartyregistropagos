@@ -96,12 +96,12 @@ export default function ClientesPage() {
     <div className="space-y-5">
       {/* Encabezado: título + botón de alta */}
       <div className="flex items-center justify-between gap-3">
-        <h1 className="flex items-center gap-2 text-2xl font-bold">
-          <IconUsers className="h-6 w-6 text-violet-500" /> Clientes
+        <h1 className="flex min-w-0 items-center gap-2 text-2xl font-bold">
+          <IconUsers className="h-6 w-6 shrink-0 text-violet-500" /> Clientes
         </h1>
         <button
           onClick={() => setMostrarForm((v) => !v)}
-          className={mostrarForm ? "btn-secondary" : "btn-primary"}
+          className={`${mostrarForm ? "btn-secondary" : "btn-primary"} shrink-0`}
         >
           {mostrarForm ? (
             <>
@@ -109,7 +109,8 @@ export default function ClientesPage() {
             </>
           ) : (
             <>
-              <IconPlus className="h-4 w-4" /> Nuevo cliente
+              <IconPlus className="h-4 w-4" /> Nuevo{" "}
+              <span className="hidden sm:inline">cliente</span>
             </>
           )}
         </button>
@@ -246,11 +247,11 @@ function ClienteCard({
 
   return (
     <div className="card">
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
-          <h3 className="font-semibold">{cliente.nombre}</h3>
+          <h3 className="truncate font-semibold">{cliente.nombre}</h3>
           {cliente.alias && (
-            <p className="text-sm text-slate-400">{cliente.alias}</p>
+            <p className="truncate text-sm text-slate-400">{cliente.alias}</p>
           )}
           <p className="mt-1 text-xs text-slate-400">
             {cliente.cuentas.length} cuenta(s) · {cliente.totalTransferencias} transferencia(s)
@@ -260,24 +261,25 @@ function ClienteCard({
           {cliente.cuentas.length > 0 && (
             <button
               onClick={onCopiar}
-              className="btn-secondary px-3 py-1.5"
+              className="btn-secondary flex-1 justify-center px-3 py-2 sm:flex-none sm:py-1.5"
               title="Copiar datos de la cuenta"
               disabled={copiando}
             >
               <IconCopy className="h-4 w-4" />
-              <span className="hidden sm:inline">Copiar</span>
+              <span>Copiar</span>
             </button>
           )}
           <button
             onClick={() => setAbierto((v) => !v)}
-            className="btn-secondary px-3 py-1.5"
+            className="btn-secondary flex-1 justify-center px-3 py-2 sm:flex-none sm:py-1.5"
           >
             {abierto ? "Cerrar" : "Cuentas"}
           </button>
           <button
             onClick={onDelete}
-            className="btn-danger px-3 py-1.5"
+            className="btn-danger shrink-0 px-3 py-2 sm:py-1.5"
             title="Eliminar cliente"
+            aria-label="Eliminar cliente"
           >
             <IconTrash className="h-4 w-4" />
           </button>
