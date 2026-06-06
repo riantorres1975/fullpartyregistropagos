@@ -39,6 +39,6 @@ export const config = {
   // del OCR (Tesseract) auto-hospedados en /tesseract/ (no son sensibles y el
   // Web Worker debe poder cargarlos sin la redirección de login).
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|icons/|tesseract/).*)",
+    "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|icons/|apple-icon|sw.js|tesseract/).*)",
   ],
 };

@@ -10,6 +10,7 @@ import {
   IconUsers,
   IconChart,
   IconLogout,
+  IconSettings,
 } from "@/components/icons";
 
 const links = [
@@ -17,6 +18,7 @@ const links = [
   { href: "/transferencias", label: "Transferencias", Icon: IconTransfer },
   { href: "/clientes", label: "Clientes", Icon: IconUsers },
   { href: "/reportes", label: "Reportes", Icon: IconChart },
+  { href: "/ajustes", label: "Ajustes", Icon: IconSettings },
 ];
 
 export default function Nav({ nombre }: { nombre: string }) {

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Bricolage_Grotesque, Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
+import PWARegister from "@/components/PWARegister";
 
 const brand = Bricolage_Grotesque({
   subsets: ["latin"],
@@ -18,6 +19,11 @@ export const metadata: Metadata = {
   title: "Mis Transferencias · Full Party",
   description: "Sistema seguro de registro de transferencias",
   manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "Transferencias",
+    statusBarStyle: "black-translucent",
+  },
 };
 
 export const viewport: Viewport = {
@@ -43,6 +49,7 @@ export default function RootLayout({
               "try{var t=localStorage.getItem('tema');if(t==='dark'||(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.classList.add('dark')}}catch(e){}",
           }}
         />
+        <PWARegister />
         {children}
       </body>
     </html>
