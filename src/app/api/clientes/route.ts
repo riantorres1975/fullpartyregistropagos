@@ -17,8 +17,16 @@ const clienteSchema = z.object({
   nombre: z.string().min(1, "El nombre es obligatorio"),
   alias: z.string().optional().nullable(),
   notas: z.string().optional().nullable(),
+  whatsapp: z.string().optional().nullable(),
   cuentas: z.array(cuentaSchema).optional(),
 });
+
+// Deja solo dígitos del WhatsApp (quita espacios, guiones, +, paréntesis).
+function limpiarWhatsapp(v?: string | null): string | null {
+  if (!v) return null;
+  const d = v.replace(/\D/g, "");
+  return d.length >= 8 ? d : null;
+}
 
 // GET /api/clientes  -> lista de clientes con sus cuentas (enmascaradas)
 export async function GET(request: NextRequest) {
@@ -64,6 +72,7 @@ export async function GET(request: NextRequest) {
         nombre: c.nombre,
         alias: c.alias,
         notas: c.notas,
+        whatsapp: c.whatsapp,
         meta: c.metaMonto,
         metaDesde: c.metaDesde,
         avance: { pendiente, reflejada },
@@ -86,13 +95,14 @@ export async function POST(request: NextRequest) {
       { status: 400 },
     );
   }
-  const { nombre, alias, notas, cuentas } = parsed.data;
+  const { nombre, alias, notas, whatsapp, cuentas } = parsed.data;
 
   const cliente = await prisma.cliente.create({
     data: {
       nombre: formatNombre(nombre),
       alias: alias || null,
       notas: notas || null,
+      whatsapp: limpiarWhatsapp(whatsapp),
       cuentas: cuentas
         ? {
             create: cuentas.map((c) => ({
@@ -118,6 +128,7 @@ export async function POST(request: NextRequest) {
       nombre: cliente.nombre,
       alias: cliente.alias,
       notas: cliente.notas,
+      whatsapp: cliente.whatsapp,
       cuentas: cliente.cuentas.map(serializeCuenta),
     },
     { status: 201 },

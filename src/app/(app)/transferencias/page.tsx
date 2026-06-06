@@ -19,6 +19,7 @@ import {
   IconPencil,
   IconTrash,
   IconFolder,
+  IconCopy,
 } from "@/components/icons";
 
 type CuentaOpt = {
@@ -66,6 +67,14 @@ function EstadoIcono({ estado }: { estado: string }) {
 
 const hoy = () => new Date().toISOString().slice(0, 10);
 
+// Días transcurridos desde una fecha (para avisar de pendientes "viejas").
+function diasDesde(fecha: string): number {
+  const ms = Date.now() - new Date(fecha).getTime();
+  return Math.floor(ms / 86_400_000);
+}
+// Una pendiente se marca como "atrasada" a partir de 3 días.
+const DIAS_ALERTA = 3;
+
 const formVacio = {
   fecha: hoy(),
   clienteId: "",
@@ -111,6 +120,16 @@ export default function TransferenciasPage() {
       })),
     [clientesData],
   );
+
+  // Si llegamos desde "Movimientos" de un cliente (/transferencias?cliente=ID),
+  // arrancamos con ese filtro puesto. Solo al cargar la página.
+  useEffect(() => {
+    const cid = new URLSearchParams(window.location.search).get("cliente");
+    if (cid) {
+      setFiltros((f) => ({ ...f, clienteId: cid }));
+      setMostrarForm(false);
+    }
+  }, []);
 
   // Atajos de teclado
   useEffect(() => {
@@ -232,6 +251,27 @@ export default function TransferenciasPage() {
     });
     cargar();
     toast(nuevo === "reflejada" ? "Marcada como reflejada" : "Marcada como pendiente");
+  }
+
+  // Prepara el formulario con los datos de otra transferencia para registrar
+  // una parecida rápido (mismo cliente/cuenta/monto). Limpia ref y comprobante.
+  function duplicar(t: Transferencia) {
+    setForm({
+      fecha: hoy(),
+      clienteId: t.clienteId ?? "",
+      cuentaId: t.cuentaId ?? "",
+      monto: String(t.monto),
+      moneda: t.moneda,
+      bancoOrigen: t.bancoOrigen ?? "",
+      bancoDestino: t.bancoDestino ?? "",
+      referencia: "",
+      estado: "pendiente",
+      observaciones: t.observaciones ?? "",
+      comprobante: "",
+    });
+    setMostrarForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+    toast("Datos copiados al formulario. Revisa y guarda.", "info");
   }
 
   async function eliminar(id: string) {
@@ -569,7 +609,13 @@ export default function TransferenciasPage() {
                 {t.referencia && (
                   <p className="text-xs text-slate-500">Ref: {t.referencia}</p>
                 )}
-                <div className="mt-3 flex gap-2">
+                {t.estado === "pendiente" && diasDesde(t.fecha) >= DIAS_ALERTA && (
+                  <p className="mt-1 flex items-center gap-1 text-xs font-medium text-orange-600">
+                    <IconClock className="h-3.5 w-3.5" /> Pendiente hace{" "}
+                    {diasDesde(t.fecha)} días
+                  </p>
+                )}
+                <div className="mt-3 flex flex-wrap gap-2">
                   {t.tieneComprobante && (
                     <button
                       onClick={() => setVerComprobante(t.id)}
@@ -578,6 +624,12 @@ export default function TransferenciasPage() {
                       <IconPaperclip className="h-4 w-4" /> Ver
                     </button>
                   )}
+                  <button
+                    onClick={() => duplicar(t)}
+                    className="btn-secondary flex-1 py-2 text-xs"
+                  >
+                    <IconCopy className="h-4 w-4" /> Duplicar
+                  </button>
                   <button
                     onClick={() => setEditar(t)}
                     className="btn-secondary flex-1 py-2 text-xs"
@@ -627,7 +679,18 @@ export default function TransferenciasPage() {
                       : "bg-amber-50 dark:bg-amber-900/25"
                   }`}
                 >
-                  <td className="py-2">{formatFecha(t.fecha)}</td>
+                  <td className="py-2">
+                    {formatFecha(t.fecha)}
+                    {t.estado === "pendiente" && diasDesde(t.fecha) >= DIAS_ALERTA && (
+                      <span
+                        className="ml-1.5 inline-flex items-center gap-0.5 rounded-full bg-orange-100 px-1.5 py-0.5 text-[10px] font-semibold text-orange-700 dark:bg-orange-500/15 dark:text-orange-400"
+                        title={`Pendiente hace ${diasDesde(t.fecha)} días`}
+                      >
+                        <IconClock className="h-3 w-3" />
+                        {diasDesde(t.fecha)}d
+                      </span>
+                    )}
+                  </td>
                   <td>
                     {t.cliente ? (
                       <button
@@ -677,6 +740,13 @@ export default function TransferenciasPage() {
                         <IconPaperclip className="h-4 w-4" />
                       </button>
                     )}
+                    <button
+                      onClick={() => duplicar(t)}
+                      className="mr-1 inline-flex rounded p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600"
+                      title="Duplicar"
+                    >
+                      <IconCopy className="h-4 w-4" />
+                    </button>
                     <button
                       onClick={() => setEditar(t)}
                       className="mr-1 inline-flex rounded p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600"

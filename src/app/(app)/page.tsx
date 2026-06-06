@@ -1,8 +1,9 @@
 "use client";
 
-import useSWR from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import Link from "next/link";
 import { formatMonto, formatFecha } from "@/lib/format";
+import { toast } from "@/lib/toast";
 import { Skeleton } from "@/components/Skeleton";
 import {
   IconPlus,
@@ -21,6 +22,7 @@ type Dashboard = {
   totalClientes: number;
   totalesPorMoneda: Record<string, { pendiente: number; reflejada: number }>;
   porMes: { label: string; pendiente: number; reflejada: number }[];
+  porBanco: { banco: string; total: number; cuenta: number }[];
   ultimas: {
     id: string;
     fecha: string;
@@ -32,7 +34,23 @@ type Dashboard = {
 };
 
 export default function DashboardPage() {
-  const { data } = useSWR<Dashboard>("/api/dashboard");
+  const { data, mutate } = useSWR<Dashboard>("/api/dashboard");
+  const { mutate: globalMutate } = useSWRConfig();
+
+  // Marca/desmarca reflejada desde aquí mismo, sin abrir la transferencia.
+  async function toggleEstado(id: string, estadoActual: string) {
+    const nuevo = estadoActual === "reflejada" ? "pendiente" : "reflejada";
+    await fetch(`/api/transferencias/${id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ estado: nuevo }),
+    });
+    mutate();
+    globalMutate(
+      (key) => typeof key === "string" && key.startsWith("/api/transferencias"),
+    );
+    toast(nuevo === "reflejada" ? "Marcada como reflejada" : "Marcada como pendiente");
+  }
 
   if (!data) {
     return <DashboardSkeleton />;
@@ -108,6 +126,13 @@ export default function DashboardPage() {
         <GraficaMeses datos={data.porMes} />
       </div>
 
+      {data.porBanco.length > 0 && (
+        <div className="card">
+          <h2 className="mb-3 font-semibold">Por banco destino (MXN)</h2>
+          <BancoBarras datos={data.porBanco} />
+        </div>
+      )}
+
       <div className="card">
         <h2 className="mb-3 font-semibold">Últimas transferencias</h2>
         {data.ultimas.length === 0 ? (
@@ -122,9 +147,13 @@ export default function DashboardPage() {
                 </div>
                 <div className="shrink-0 text-right">
                   <p className="font-semibold">{formatMonto(t.monto, t.moneda)}</p>
-                  <span
-                    className={`flex items-center justify-end gap-1 text-xs ${
-                      t.estado === "reflejada" ? "text-emerald-600" : "text-amber-600"
+                  <button
+                    onClick={() => toggleEstado(t.id, t.estado)}
+                    title="Clic para cambiar el estado"
+                    className={`ml-auto flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ${
+                      t.estado === "reflejada"
+                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-400"
+                        : "bg-amber-100 text-amber-700 dark:bg-amber-500/15 dark:text-amber-400"
                     }`}
                   >
                     {t.estado === "reflejada" ? (
@@ -133,7 +162,7 @@ export default function DashboardPage() {
                       <IconClock className="h-3.5 w-3.5" />
                     )}
                     {t.estado === "reflejada" ? "Reflejada" : "Pendiente"}
-                  </span>
+                  </button>
                 </div>
               </li>
             ))}
@@ -200,6 +229,35 @@ function Stat({
         </p>
         <p className={`font-display text-3xl font-extrabold ${color}`}>{value}</p>
       </div>
+    </div>
+  );
+}
+
+// Barras horizontales con el total enviado por banco destino (MXN).
+function BancoBarras({
+  datos,
+}: {
+  datos: { banco: string; total: number; cuenta: number }[];
+}) {
+  const max = Math.max(1, ...datos.map((d) => d.total));
+  return (
+    <div className="space-y-2.5">
+      {datos.map((d) => (
+        <div key={d.banco}>
+          <div className="mb-0.5 flex items-center justify-between gap-2 text-sm">
+            <span className="min-w-0 truncate font-medium">{d.banco}</span>
+            <span className="shrink-0 font-semibold">
+              {formatMonto(d.total, "MXN")}
+            </span>
+          </div>
+          <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
+            <div
+              className="h-full rounded-full bg-violet-500"
+              style={{ width: `${Math.max(4, (d.total / max) * 100)}%` }}
+            />
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

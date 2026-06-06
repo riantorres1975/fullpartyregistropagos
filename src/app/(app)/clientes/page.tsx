@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import useSWR from "swr";
 import { BANCOS } from "@/lib/bancos";
 import {
@@ -24,6 +25,8 @@ import {
   IconSearch,
   IconPlus,
   IconUsers,
+  IconWhatsApp,
+  IconTransfer,
 } from "@/components/icons";
 
 const tipoLabel = (tipo: string) =>
@@ -43,6 +46,7 @@ type Cliente = {
   nombre: string;
   alias: string | null;
   notas: string | null;
+  whatsapp: string | null;
   meta: number | null;
   metaDesde: string | null;
   avance: { pendiente: number; reflejada: number };
@@ -53,7 +57,7 @@ type Cliente = {
 export default function ClientesPage() {
   const [q, setQ] = useState("");
   const [qDebounced, setQDebounced] = useState("");
-  const [nuevo, setNuevo] = useState({ nombre: "", alias: "", notas: "" });
+  const [nuevo, setNuevo] = useState({ nombre: "", alias: "", whatsapp: "", notas: "" });
   const [guardando, setGuardando] = useState(false);
   const [mostrarForm, setMostrarForm] = useState(false);
 
@@ -79,7 +83,7 @@ export default function ClientesPage() {
     });
     setGuardando(false);
     if (res.ok) {
-      setNuevo({ nombre: "", alias: "", notas: "" });
+      setNuevo({ nombre: "", alias: "", whatsapp: "", notas: "" });
       setMostrarForm(false);
       cargar();
       toast("Cliente agregado");
@@ -152,7 +156,20 @@ export default function ClientesPage() {
               placeholder="Opcional"
             />
           </div>
-          <div className="flex items-end">
+          <div>
+            <label className="label flex items-center gap-1.5">
+              <IconWhatsApp className="h-3.5 w-3.5 text-green-600" /> WhatsApp
+            </label>
+            <input
+              className="input"
+              type="tel"
+              inputMode="tel"
+              value={nuevo.whatsapp}
+              onChange={(e) => setNuevo({ ...nuevo, whatsapp: e.target.value })}
+              placeholder="Ej. 55 1234 5678 (opcional)"
+            />
+          </div>
+          <div className="flex items-end sm:col-span-2">
             <button className="btn-primary w-full" disabled={guardando}>
               {guardando ? "Guardando…" : "Guardar cliente"}
             </button>
@@ -216,37 +233,65 @@ function ClienteCard({
   onDelete: () => void;
 }) {
   const [abierto, setAbierto] = useState(false);
-  const [eligiendoCopia, setEligiendoCopia] = useState(false);
-  const [copiando, setCopiando] = useState(false);
+  // Qué acción está esperando que se elija una cuenta (cuando hay varias).
+  const [accion, setAccion] = useState<"copiar" | "whatsapp" | null>(null);
+  const [procesando, setProcesando] = useState(false);
 
-  // Copia los datos de una cuenta al portapapeles en formato:
-  // Nombre / Tipo: número agrupado / Banco
+  // Obtiene el número descifrado de una cuenta (queda auditado en el server).
+  async function revelarNumero(cuentaId: string): Promise<string> {
+    const res = await fetch(`/api/cuentas/${cuentaId}?reveal=1`);
+    if (!res.ok) throw new Error();
+    return (await res.json()).numero as string;
+  }
+
+  // Texto compartible de una cuenta: Nombre / Tipo: número / Banco
+  async function textoCuenta(cuenta: Cuenta): Promise<string> {
+    const numero = await revelarNumero(cuenta.id);
+    return `${cliente.nombre}\n${tipoLabel(cuenta.tipo)}: ${agruparNumero(numero)}\n${cuenta.banco}`;
+  }
+
   async function copiarCuenta(cuenta: Cuenta) {
-    setCopiando(true);
+    setProcesando(true);
     try {
-      const res = await fetch(`/api/cuentas/${cuenta.id}?reveal=1`);
-      if (!res.ok) throw new Error();
-      const { numero } = await res.json();
-      const texto = `${cliente.nombre}\n${tipoLabel(cuenta.tipo)}: ${agruparNumero(numero)}\n${cuenta.banco}`;
-      await navigator.clipboard.writeText(texto);
+      await navigator.clipboard.writeText(await textoCuenta(cuenta));
       toast("Datos copiados");
-      setEligiendoCopia(false);
+      setAccion(null);
     } catch {
       toast("No se pudo copiar", "error");
     } finally {
-      setCopiando(false);
+      setProcesando(false);
     }
   }
 
-  function onCopiar() {
+  // Abre WhatsApp del cliente con los datos de la cuenta ya escritos.
+  async function whatsappCuenta(cuenta: Cuenta) {
+    setProcesando(true);
+    try {
+      const texto = await textoCuenta(cuenta);
+      const url = `https://wa.me/${cliente.whatsapp}?text=${encodeURIComponent(texto)}`;
+      window.open(url, "_blank", "noopener");
+      setAccion(null);
+    } catch {
+      toast("No se pudo preparar el mensaje", "error");
+    } finally {
+      setProcesando(false);
+    }
+  }
+
+  // Dispara una acción que necesita una cuenta: 0 = avisa, 1 = directo, varias = elegir.
+  function iniciar(tipo: "copiar" | "whatsapp") {
     if (cliente.cuentas.length === 0) {
-      toast("Este cliente no tiene cuentas guardadas", "info");
+      if (tipo === "whatsapp" && cliente.whatsapp) {
+        window.open(`https://wa.me/${cliente.whatsapp}`, "_blank", "noopener");
+      } else {
+        toast("Este cliente no tiene cuentas guardadas", "info");
+      }
       return;
     }
     if (cliente.cuentas.length === 1) {
-      copiarCuenta(cliente.cuentas[0]);
+      tipo === "copiar" ? copiarCuenta(cliente.cuentas[0]) : whatsappCuenta(cliente.cuentas[0]);
     } else {
-      setEligiendoCopia((v) => !v);
+      setAccion((a) => (a === tipo ? null : tipo));
     }
   }
 
@@ -262,21 +307,40 @@ function ClienteCard({
             {cliente.cuentas.length} cuenta(s) · {cliente.totalTransferencias} transferencia(s)
           </p>
         </div>
-        <div className="flex shrink-0 gap-2">
+        <div className="flex shrink-0 flex-wrap gap-2">
+          {cliente.whatsapp && (
+            <button
+              onClick={() => iniciar("whatsapp")}
+              className="btn-secondary px-3 py-2 text-green-700 sm:py-1.5 dark:text-green-400"
+              title="Enviar datos por WhatsApp"
+              disabled={procesando}
+            >
+              <IconWhatsApp className="h-4 w-4" />
+              <span>WhatsApp</span>
+            </button>
+          )}
           {cliente.cuentas.length > 0 && (
             <button
-              onClick={onCopiar}
-              className="btn-secondary flex-1 justify-center px-3 py-2 sm:flex-none sm:py-1.5"
+              onClick={() => iniciar("copiar")}
+              className="btn-secondary px-3 py-2 sm:py-1.5"
               title="Copiar datos de la cuenta"
-              disabled={copiando}
+              disabled={procesando}
             >
               <IconCopy className="h-4 w-4" />
               <span>Copiar</span>
             </button>
           )}
+          <Link
+            href={`/transferencias?cliente=${cliente.id}`}
+            className="btn-secondary px-3 py-2 sm:py-1.5"
+            title="Ver sus transferencias"
+          >
+            <IconTransfer className="h-4 w-4" />
+            <span>Movimientos</span>
+          </Link>
           <button
             onClick={() => setAbierto((v) => !v)}
-            className="btn-secondary flex-1 justify-center px-3 py-2 sm:flex-none sm:py-1.5"
+            className="btn-secondary px-3 py-2 sm:py-1.5"
           >
             {abierto ? "Cerrar" : "Cuentas"}
           </button>
@@ -291,18 +355,20 @@ function ClienteCard({
         </div>
       </div>
 
-      {/* Selector de cuenta a copiar (cuando hay varias). */}
-      {eligiendoCopia && cliente.cuentas.length > 1 && (
+      {/* Selector de cuenta (cuando hay varias) para copiar o enviar por WhatsApp. */}
+      {accion && cliente.cuentas.length > 1 && (
         <div className="mt-3 rounded-lg border border-slate-200 p-2 dark:border-slate-700">
           <p className="mb-1.5 px-1 text-xs font-medium text-slate-500">
-            ¿Cuál cuenta copio?
+            {accion === "copiar" ? "¿Cuál cuenta copio?" : "¿Cuál cuenta envío?"}
           </p>
           <div className="space-y-1">
             {cliente.cuentas.map((cuenta) => (
               <button
                 key={cuenta.id}
-                onClick={() => copiarCuenta(cuenta)}
-                disabled={copiando}
+                onClick={() =>
+                  accion === "copiar" ? copiarCuenta(cuenta) : whatsappCuenta(cuenta)
+                }
+                disabled={procesando}
                 className="flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-sm hover:bg-slate-100 dark:hover:bg-slate-700"
               >
                 <span className="truncate">
@@ -320,6 +386,7 @@ function ClienteCard({
         </div>
       )}
 
+      <WhatsAppCliente cliente={cliente} onChange={onChange} />
       <MetaCliente cliente={cliente} onChange={onChange} />
 
       {abierto && (
@@ -330,6 +397,111 @@ function ClienteCard({
           <NuevaCuenta clienteId={cliente.id} onChange={onChange} />
         </div>
       )}
+    </div>
+  );
+}
+
+// WhatsApp del cliente: muestra el número (formateado) con edición inline,
+// o un botón para agregarlo si aún no tiene.
+function WhatsAppCliente({
+  cliente,
+  onChange,
+}: {
+  cliente: Cliente;
+  onChange: () => void;
+}) {
+  const [editando, setEditando] = useState(false);
+  const [valor, setValor] = useState(cliente.whatsapp ?? "");
+  const [guardando, setGuardando] = useState(false);
+
+  async function guardar(whatsapp: string | null) {
+    setGuardando(true);
+    const res = await fetch(`/api/clientes/${cliente.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ whatsapp }),
+    });
+    setGuardando(false);
+    if (res.ok) {
+      setEditando(false);
+      onChange();
+      toast(whatsapp ? "WhatsApp guardado" : "WhatsApp quitado");
+    } else {
+      toast("No se pudo guardar el WhatsApp", "error");
+    }
+  }
+
+  if (editando) {
+    return (
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          guardar(valor.replace(/\D/g, "") || null);
+        }}
+        className="mt-3 flex flex-wrap items-center gap-2 border-t border-slate-100 pt-3 dark:border-slate-700"
+      >
+        <IconWhatsApp className="h-4 w-4 text-green-600" />
+        <input
+          type="tel"
+          inputMode="tel"
+          autoFocus
+          className="input max-w-[180px] py-1.5"
+          value={valor}
+          onChange={(e) => setValor(e.target.value)}
+          placeholder="Ej. 55 1234 5678"
+        />
+        <button className="btn-primary px-3 py-1.5 text-xs" disabled={guardando}>
+          <IconCheck className="h-3.5 w-3.5" /> Guardar
+        </button>
+        <button
+          type="button"
+          onClick={() => setEditando(false)}
+          className="btn-secondary px-3 py-1.5 text-xs"
+        >
+          <IconX className="h-3.5 w-3.5" /> Cancelar
+        </button>
+        {cliente.whatsapp && (
+          <button
+            type="button"
+            onClick={() => guardar(null)}
+            className="btn-danger px-3 py-1.5 text-xs"
+            disabled={guardando}
+          >
+            <IconTrash className="h-3.5 w-3.5" /> Quitar
+          </button>
+        )}
+      </form>
+    );
+  }
+
+  if (!cliente.whatsapp) {
+    return (
+      <button
+        onClick={() => {
+          setValor("");
+          setEditando(true);
+        }}
+        className="mt-3 flex items-center gap-1.5 text-xs font-medium text-green-600 hover:underline dark:text-green-400"
+      >
+        <IconWhatsApp className="h-3.5 w-3.5" /> Agregar WhatsApp
+      </button>
+    );
+  }
+
+  return (
+    <div className="mt-3 flex items-center gap-2 border-t border-slate-100 pt-3 text-xs text-slate-500 dark:border-slate-700">
+      <IconWhatsApp className="h-3.5 w-3.5 text-green-600" />
+      <span>{cliente.whatsapp}</span>
+      <button
+        onClick={() => {
+          setValor(cliente.whatsapp ?? "");
+          setEditando(true);
+        }}
+        className="flex items-center gap-1 text-slate-400 hover:text-green-600 dark:hover:text-green-400"
+        title="Editar WhatsApp"
+      >
+        <IconPencil className="h-3.5 w-3.5" /> Editar
+      </button>
     </div>
   );
 }

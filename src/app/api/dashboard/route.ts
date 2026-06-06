@@ -10,7 +10,7 @@ export async function GET() {
   const ahora = new Date();
   const inicio6Meses = new Date(ahora.getFullYear(), ahora.getMonth() - 5, 1);
 
-  const [porEstado, porMoneda, totalClientes, ultimas, ultimosMeses] =
+  const [porEstado, porMoneda, totalClientes, ultimas, ultimosMeses, porBancoRaw] =
     await Promise.all([
       prisma.transferencia.groupBy({ by: ["estado"], _count: true }),
       prisma.transferencia.groupBy({
@@ -26,6 +26,13 @@ export async function GET() {
       prisma.transferencia.findMany({
         where: { fecha: { gte: inicio6Meses } },
         select: { fecha: true, estado: true },
+      }),
+      // Totales por banco destino (MXN), para ver a dónde se manda más.
+      prisma.transferencia.groupBy({
+        by: ["bancoDestino"],
+        where: { moneda: "MXN", bancoDestino: { not: null } },
+        _sum: { monto: true },
+        _count: true,
       }),
     ]);
 
@@ -75,6 +82,16 @@ export async function GET() {
     reflejada,
   }));
 
+  // Top bancos destino por monto (MXN), de mayor a menor (máx. 6).
+  const porBanco = porBancoRaw
+    .map((b) => ({
+      banco: b.bancoDestino ?? "Sin banco",
+      total: b._sum.monto ?? 0,
+      cuenta: b._count,
+    }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 6);
+
   return NextResponse.json({
     pendientes,
     reflejadas,
@@ -82,6 +99,7 @@ export async function GET() {
     totalClientes,
     totalesPorMoneda,
     porMes,
+    porBanco,
     ultimas: ultimas.map((t) => ({
       id: t.id,
       fecha: t.fecha,

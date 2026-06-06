@@ -27,6 +27,9 @@ model Cliente {
   nombre    String
   alias     String?
   notas     String?
+  // WhatsApp del cliente (solo dígitos, con lada). Opcional. Sirve para
+  // enviarle datos/comprobantes con un toque vía wa.me.
+  whatsapp  String?
   // Meta opcional de transferencia (monto objetivo en MXN). null = sin meta.
   metaMonto Float?
   // Momento en que se fijó la meta. El avance solo cuenta transferencias

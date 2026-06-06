@@ -10,6 +10,7 @@ const updateSchema = z.object({
   nombre: z.string().min(1).optional(),
   alias: z.string().optional().nullable(),
   notas: z.string().optional().nullable(),
+  whatsapp: z.string().optional().nullable(),
   // Meta de transferencia en MXN. número positivo para fijarla, null para quitarla.
   metaMonto: z.number().positive("La meta debe ser mayor a 0").nullable().optional(),
 });
@@ -32,6 +33,7 @@ export async function GET(_req: NextRequest, ctx: Ctx) {
     nombre: cliente.nombre,
     alias: cliente.alias,
     notas: cliente.notas,
+    whatsapp: cliente.whatsapp,
     cuentas: cliente.cuentas.map(serializeCuenta),
   });
 }
@@ -48,9 +50,13 @@ export async function PUT(request: NextRequest, ctx: Ctx) {
       { status: 400 },
     );
   }
-  const { metaMonto, ...resto } = parsed.data;
+  const { metaMonto, whatsapp, ...resto } = parsed.data;
   const data: Prisma.ClienteUpdateInput = { ...resto };
   if (typeof resto.nombre === "string") data.nombre = formatNombre(resto.nombre);
+  if (whatsapp !== undefined) {
+    const d = (whatsapp ?? "").replace(/\D/g, "");
+    data.whatsapp = d.length >= 8 ? d : null;
+  }
 
   // Manejo de la meta: al FIJARLA por primera vez se marca "metaDesde" = ahora,
   // para que el avance arranque de cero (no cuente lo ya transferido). Al
