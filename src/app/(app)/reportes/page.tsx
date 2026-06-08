@@ -1,9 +1,12 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import useSWR from "swr";
 import ClienteCombobox from "@/components/ClienteCombobox";
 import { formatMonto } from "@/lib/format";
+import { cifrarTexto } from "@/lib/cifradoCliente";
+import { toast } from "@/lib/toast";
 import { Skeleton } from "@/components/Skeleton";
 import {
   IconFilter,
@@ -13,6 +16,7 @@ import {
   IconEye,
   IconClock,
   IconCheckCircle,
+  IconLock,
 } from "@/components/icons";
 
 type ClienteOpt = { id: string; nombre: string };
@@ -214,6 +218,75 @@ export default function ReportesPage() {
             <IconSave className="h-4 w-4" /> Descargar respaldo (.json)
           </a>
         </div>
+
+        <hr className="border-slate-100 dark:border-slate-700" />
+
+        <RespaldoCifrado />
+      </div>
+    </div>
+  );
+}
+
+// Respaldo extra protegido con una contraseña elegida por ti. Se cifra en tu
+// navegador antes de descargarse. Para abrirlo se usa la página "Descifrar".
+function RespaldoCifrado() {
+  const [password, setPassword] = useState("");
+  const [generando, setGenerando] = useState(false);
+
+  async function descargar() {
+    if (password.length < 6) {
+      toast("Usa una contraseña de al menos 6 caracteres", "error");
+      return;
+    }
+    setGenerando(true);
+    try {
+      const res = await fetch("/api/backup");
+      if (!res.ok) throw new Error();
+      const json = await res.text();
+      const cifrado = await cifrarTexto(json, password);
+      const blob = new Blob([cifrado], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `respaldo-cifrado-${new Date().toISOString().slice(0, 10)}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      setPassword("");
+      toast("Respaldo cifrado descargado");
+    } catch {
+      toast("No se pudo generar el respaldo cifrado", "error");
+    } finally {
+      setGenerando(false);
+    }
+  }
+
+  return (
+    <div>
+      <h2 className="flex items-center gap-2 font-semibold">
+        <IconLock className="h-4 w-4" /> Respaldo cifrado con contraseña
+      </h2>
+      <p className="mb-2 text-sm text-slate-500">
+        Protege el respaldo con una contraseña tuya (además del cifrado de las
+        cuentas). Guárdala bien: sin ella, el archivo no se puede abrir. Para
+        recuperarlo usa la página{" "}
+        <Link href="/descifrar" className="text-violet-600 underline">
+          Descifrar
+        </Link>
+        .
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <input
+          type="password"
+          className="input max-w-xs"
+          placeholder="Contraseña del respaldo"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          autoComplete="new-password"
+        />
+        <button onClick={descargar} className="btn-secondary" disabled={generando}>
+          <IconLock className="h-4 w-4" />
+          {generando ? "Cifrando…" : "Descargar respaldo cifrado"}
+        </button>
       </div>
     </div>
   );

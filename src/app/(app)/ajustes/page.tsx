@@ -10,6 +10,7 @@ import {
   IconDownload,
   IconSettings,
   IconWhatsApp,
+  IconMail,
 } from "@/components/icons";
 
 export default function AjustesPage() {
@@ -20,23 +21,24 @@ export default function AjustesPage() {
       </h1>
       <InstalarApp />
       <ResumenWhatsapp />
+      <RespaldoCorreo />
       <CambiarContrasena />
       <ConfigurarPin />
     </div>
   );
 }
 
-// ─── Resumen diario por WhatsApp (CallMeBot) ─────────────────────────────────
-function ResumenWhatsapp() {
+// ─── Respaldo automático por correo (Resend) ─────────────────────────────────
+function RespaldoCorreo() {
   const [enviando, setEnviando] = useState(false);
 
   async function probar() {
     setEnviando(true);
     try {
-      const res = await fetch("/api/resumen-diario");
+      const res = await fetch("/api/respaldo-correo");
       const d = await res.json().catch(() => ({}));
-      if (res.ok) toast("Resumen enviado. Revisa tu WhatsApp.");
-      else toast(d.error ?? "No se pudo enviar el resumen", "error");
+      if (res.ok) toast("Respaldo enviado a tu correo.");
+      else toast(d.error ?? "No se pudo enviar el respaldo", "error");
     } finally {
       setEnviando(false);
     }
@@ -45,36 +47,99 @@ function ResumenWhatsapp() {
   return (
     <div className="card space-y-3">
       <h2 className="flex items-center gap-2 font-semibold">
-        <IconWhatsApp className="h-5 w-5 text-green-600" /> Resumen diario por
-        WhatsApp
+        <IconMail className="h-5 w-5 text-violet-500" /> Respaldo automático por
+        correo
       </h2>
       <p className="text-sm text-slate-500">
-        Cada día a las 9:00 p.m. recibes en tu WhatsApp un resumen de los
-        movimientos del día. Es gratis con CallMeBot. Configúralo una sola vez:
+        Cada domingo te llega el respaldo completo a tu correo (gratis con
+        Resend). Configúralo una sola vez:
       </p>
       <ol className="ml-4 list-decimal space-y-1 text-sm text-slate-500">
         <li>
-          Agrega a tus contactos el número{" "}
-          <strong>+34 644 51 95 23</strong> (CallMeBot).
+          Crea una cuenta gratis en{" "}
+          <strong>resend.com</strong> con tu mismo correo.
         </li>
         <li>
-          Mándale por WhatsApp el mensaje:{" "}
-          <strong>“I allow callmebot to send me messages”</strong>.
+          En “API Keys” genera una clave y pásamela junto con el correo donde
+          quieres recibir el respaldo.
         </li>
-        <li>Te responden con tu apikey personal (gratis).</li>
         <li>
-          Pásame tu número y esa apikey para guardarlos en el servidor
-          (variables <code>CALLMEBOT_PHONE</code> y <code>CALLMEBOT_APIKEY</code>).
+          La guardo en el servidor (variables <code>RESEND_API_KEY</code> y{" "}
+          <code>BACKUP_EMAIL</code>).
         </li>
       </ol>
-      <button
-        onClick={probar}
-        className="btn-secondary"
-        disabled={enviando}
-      >
-        <IconWhatsApp className="h-4 w-4 text-green-600" />
-        {enviando ? "Enviando…" : "Enviar prueba ahora"}
+      <button onClick={probar} className="btn-secondary" disabled={enviando}>
+        <IconMail className="h-4 w-4" />
+        {enviando ? "Enviando…" : "Enviarme un respaldo ahora"}
       </button>
+    </div>
+  );
+}
+
+// ─── Resúmenes por WhatsApp (CallMeBot) ──────────────────────────────────────
+function ResumenWhatsapp() {
+  const [enviando, setEnviando] = useState<string | null>(null);
+
+  async function enviar(url: string, etiqueta: string) {
+    setEnviando(etiqueta);
+    try {
+      const res = await fetch(url);
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) toast(d.mensaje?.includes("no se envió") ? d.mensaje : "Enviado. Revisa tu WhatsApp.");
+      else toast(d.error ?? "No se pudo enviar", "error");
+    } finally {
+      setEnviando(null);
+    }
+  }
+
+  return (
+    <div className="card space-y-3">
+      <h2 className="flex items-center gap-2 font-semibold">
+        <IconWhatsApp className="h-5 w-5 text-green-600" /> Resúmenes por WhatsApp
+      </h2>
+      <p className="text-sm text-slate-500">
+        Recibes el resumen <strong>diario a las 7:00 p.m.</strong> y el{" "}
+        <strong>semanal los domingos</strong>, automáticamente. Desde aquí puedes
+        enviar cualquiera al instante:
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={() => enviar("/api/resumen-diario", "dia")}
+          className="btn-secondary"
+          disabled={!!enviando}
+        >
+          <IconWhatsApp className="h-4 w-4 text-green-600" />
+          {enviando === "dia" ? "Enviando…" : "Resumen del día"}
+        </button>
+        <button
+          onClick={() => enviar("/api/resumen-diario?periodo=semana", "semana")}
+          className="btn-secondary"
+          disabled={!!enviando}
+        >
+          <IconWhatsApp className="h-4 w-4 text-green-600" />
+          {enviando === "semana" ? "Enviando…" : "De la semana"}
+        </button>
+        <button
+          onClick={() => enviar("/api/resumen-diario?periodo=mes", "mes")}
+          className="btn-secondary"
+          disabled={!!enviando}
+        >
+          <IconWhatsApp className="h-4 w-4 text-green-600" />
+          {enviando === "mes" ? "Enviando…" : "Del mes"}
+        </button>
+        <button
+          onClick={() => enviar("/api/resumen-diario?tipo=atrasadas", "atrasadas")}
+          className="btn-secondary"
+          disabled={!!enviando}
+        >
+          <IconWhatsApp className="h-4 w-4 text-amber-600" />
+          {enviando === "atrasadas" ? "Enviando…" : "Solo atrasadas"}
+        </button>
+      </div>
+      <p className="text-xs text-slate-400">
+        Si configuras una nueva apikey de CallMeBot, pásamela para actualizarla en
+        el servidor.
+      </p>
     </div>
   );
 }

@@ -4,7 +4,12 @@ import { verifySession, SESSION_COOKIE } from "@/lib/auth";
 // Rutas públicas que no requieren sesión.
 // /api/resumen-diario lo dispara el Cron de Vercel (sin cookie); el propio
 // endpoint valida CRON_SECRET o sesión, así que es seguro dejarlo pasar aquí.
-const PUBLIC_PATHS = ["/login", "/api/auth/login", "/api/resumen-diario"];
+const PUBLIC_PATHS = [
+  "/login",
+  "/api/auth/login",
+  "/api/resumen-diario",
+  "/api/respaldo-correo",
+];
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

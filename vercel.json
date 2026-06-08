@@ -1,5 +1,6 @@
 {
   "crons": [
-    { "path": "/api/resumen-diario", "schedule": "0 1 * * *" }
+    { "path": "/api/resumen-diario", "schedule": "0 1 * * *" },
+    { "path": "/api/resumen-diario?periodo=semana", "schedule": "0 1 * * 1" }
   ]
 }
