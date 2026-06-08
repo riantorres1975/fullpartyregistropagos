@@ -221,14 +221,14 @@ export default function TransferenciasPage() {
     }));
   }
 
-  async function crear(e: React.FormEvent) {
+  async function crear(e: React.FormEvent, permitirDuplicado = false) {
     e.preventDefault();
     if (!form.monto) return;
     setGuardando(true);
     const res = await fetch("/api/transferencias", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...form, monto: parseFloat(form.monto) }),
+      body: JSON.stringify({ ...form, monto: parseFloat(form.monto), permitirDuplicado }),
     });
     setGuardando(false);
     if (res.ok) {
@@ -236,10 +236,17 @@ export default function TransferenciasPage() {
       setPage(1);
       cargar();
       toast("Transferencia guardada");
-    } else {
-      const d = await res.json();
-      toast(d.error ?? "Error al guardar", "error");
+      return;
     }
+    const d = await res.json().catch(() => ({}));
+    // 409: posible duplicado. Preguntamos y, si confirma, reintentamos forzando.
+    if (res.status === 409 && d.duplicado && !permitirDuplicado) {
+      if (confirm(d.error ?? "Parece un duplicado. ¿Registrar de todas formas?")) {
+        crear(e, true);
+      }
+      return;
+    }
+    toast(d.error ?? "Error al guardar", "error");
   }
 
   async function toggleEstado(t: Transferencia) {
@@ -513,7 +520,7 @@ export default function TransferenciasPage() {
         <input
           ref={filtroRef}
           className="input"
-          placeholder="Referencia"
+          placeholder="Buscar (referencia o monto)"
           value={filtros.q}
           onChange={(e) => {
             setPage(1);

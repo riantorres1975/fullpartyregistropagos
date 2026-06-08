@@ -19,6 +19,8 @@ const schema = z.object({
   // Imagen del comprobante en base64 (WebP). Límite ~8 MB de texto base64
   // (~6 MB de imagen) para evitar payloads abusivos / engorde de BD.
   comprobante: z.string().max(8_000_000, "Comprobante demasiado grande").optional().nullable(),
+  // Si el usuario ya confirmó que quiere registrar pese a un posible duplicado.
+  permitirDuplicado: z.boolean().optional(),
 });
 
 // GET /api/transferencias?q=&estado=&desde=&hasta=&page=&pageSize=
@@ -34,7 +36,7 @@ export async function GET(request: NextRequest) {
   const page = Math.max(1, parseInt(sp.get("page") ?? "1", 10) || 1);
   const pageSize = Math.min(200, Math.max(1, parseInt(sp.get("pageSize") ?? "25", 10) || 25));
 
-  const where: Prisma.TransferenciaWhereInput = {};
+  const where: Prisma.TransferenciaWhereInput = { deletedAt: null };
   if (estado === "pendiente" || estado === "reflejada") where.estado = estado;
   if (clienteId) where.clienteId = clienteId;
   if (desde || hasta) {
@@ -46,6 +48,10 @@ export async function GET(request: NextRequest) {
     where.OR = [
       { referencia: { contains: q, mode: "insensitive" } },
       { cliente: { nombre: { contains: q, mode: "insensitive" } } },
+      // Búsqueda por monto: si lo tecleado parece un número, lo igualamos.
+      ...(Number.isFinite(Number(q.replace(/[,$\s]/g, "")))
+        ? [{ monto: Number(q.replace(/[,$\s]/g, "")) }]
+        : []),
     ];
   }
 
@@ -126,6 +132,36 @@ export async function POST(request: NextRequest) {
     );
   }
   const d = parsed.data;
+
+  // Detección de duplicados: misma fecha (día), cliente, monto y moneda, no
+  // borrada. Si existe y el usuario no lo ha confirmado, avisamos (409) para
+  // que decida si registrar de todas formas.
+  if (!d.permitirDuplicado) {
+    const dia = new Date(d.fecha);
+    const inicioDia = new Date(dia.getFullYear(), dia.getMonth(), dia.getDate());
+    const finDia = new Date(inicioDia.getTime() + 86_400_000);
+    const yaExiste = await prisma.transferencia.findFirst({
+      where: {
+        deletedAt: null,
+        monto: d.monto,
+        moneda: d.moneda,
+        clienteId: d.clienteId || null,
+        fecha: { gte: inicioDia, lt: finDia },
+      },
+      select: { id: true },
+    });
+    if (yaExiste) {
+      return NextResponse.json(
+        {
+          duplicado: true,
+          error:
+            "Ya existe una transferencia de ese mismo cliente, monto y día. ¿Registrarla de todas formas?",
+        },
+        { status: 409 },
+      );
+    }
+  }
+
   const t = await prisma.transferencia.create({
     data: {
       fecha: new Date(d.fecha),

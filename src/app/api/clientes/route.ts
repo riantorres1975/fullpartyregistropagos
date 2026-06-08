@@ -35,20 +35,26 @@ export async function GET(request: NextRequest) {
   const q = request.nextUrl.searchParams.get("q")?.trim();
   const [clientes, txs] = await Promise.all([
     prisma.cliente.findMany({
-      where: q
-        ? {
-            OR: [
-              { nombre: { contains: q, mode: "insensitive" } },
-              { alias: { contains: q, mode: "insensitive" } },
-            ],
-          }
-        : undefined,
+      where: {
+        deletedAt: null,
+        ...(q
+          ? {
+              OR: [
+                { nombre: { contains: q, mode: "insensitive" } },
+                { alias: { contains: q, mode: "insensitive" } },
+              ],
+            }
+          : {}),
+      },
       orderBy: { nombre: "asc" },
-      include: { cuentas: true, _count: { select: { transferencias: true } } },
+      include: {
+        cuentas: true,
+        _count: { select: { transferencias: { where: { deletedAt: null } } } },
+      },
     }),
     // Transferencias MXN (con fecha de registro) para el avance de metas.
     prisma.transferencia.findMany({
-      where: { moneda: "MXN", clienteId: { not: null } },
+      where: { deletedAt: null, moneda: "MXN", clienteId: { not: null } },
       select: { clienteId: true, monto: true, estado: true, createdAt: true },
     }),
   ]);

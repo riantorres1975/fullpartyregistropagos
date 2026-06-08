@@ -10,27 +10,36 @@ export async function GET() {
   const ahora = new Date();
   const inicio6Meses = new Date(ahora.getFullYear(), ahora.getMonth() - 5, 1);
 
-  const [porEstado, porMoneda, totalClientes, ultimas, ultimosMeses, porBancoRaw] =
+  const [porEstado, porMoneda, totalClientes, ultimas, ultimosMeses, porBancoRaw, porClienteRaw] =
     await Promise.all([
-      prisma.transferencia.groupBy({ by: ["estado"], _count: true }),
+      prisma.transferencia.groupBy({ by: ["estado"], where: { deletedAt: null }, _count: true }),
       prisma.transferencia.groupBy({
         by: ["moneda", "estado"],
+        where: { deletedAt: null },
         _sum: { monto: true },
       }),
-      prisma.cliente.count(),
+      prisma.cliente.count({ where: { deletedAt: null } }),
       prisma.transferencia.findMany({
+        where: { deletedAt: null },
         orderBy: { fecha: "desc" },
         take: 5,
         include: { cliente: { select: { nombre: true } } },
       }),
       prisma.transferencia.findMany({
-        where: { fecha: { gte: inicio6Meses } },
-        select: { fecha: true, estado: true },
+        where: { deletedAt: null, fecha: { gte: inicio6Meses } },
+        select: { fecha: true, estado: true, monto: true, moneda: true },
       }),
       // Totales por banco destino (MXN), para ver a dónde se manda más.
       prisma.transferencia.groupBy({
         by: ["bancoDestino"],
-        where: { moneda: "MXN", bancoDestino: { not: null } },
+        where: { deletedAt: null, moneda: "MXN", bancoDestino: { not: null } },
+        _sum: { monto: true },
+        _count: true,
+      }),
+      // Totales por cliente (MXN), para ver quién mueve más.
+      prisma.transferencia.groupBy({
+        by: ["clienteId"],
+        where: { deletedAt: null, moneda: "MXN", clienteId: { not: null } },
         _sum: { monto: true },
         _count: true,
       }),
@@ -57,6 +66,7 @@ export async function GET() {
     label: string;
     pendiente: number;
     reflejada: number;
+    montoMXN: number;
   }[] = [];
   for (let i = 5; i >= 0; i--) {
     const d = new Date(ahora.getFullYear(), ahora.getMonth() - i, 1);
@@ -65,6 +75,7 @@ export async function GET() {
       label: MESES[d.getMonth()],
       pendiente: 0,
       reflejada: 0,
+      montoMXN: 0,
     });
   }
   for (const t of ultimosMeses) {
@@ -74,12 +85,14 @@ export async function GET() {
     if (b) {
       if (t.estado === "reflejada") b.reflejada++;
       else b.pendiente++;
+      if (t.moneda === "MXN") b.montoMXN += t.monto;
     }
   }
-  const porMes = buckets.map(({ label, pendiente, reflejada }) => ({
+  const porMes = buckets.map(({ label, pendiente, reflejada, montoMXN }) => ({
     label,
     pendiente,
     reflejada,
+    montoMXN,
   }));
 
   // Top bancos destino por monto (MXN), de mayor a menor (máx. 6).
@@ -92,6 +105,22 @@ export async function GET() {
     .sort((a, b) => b.total - a.total)
     .slice(0, 6);
 
+  // Top clientes por monto (MXN). Resolvemos los nombres de los más altos.
+  const topClienteIds = porClienteRaw
+    .map((c) => ({ id: c.clienteId as string, total: c._sum.monto ?? 0, n: c._count }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 6);
+  const nombresClientes = await prisma.cliente.findMany({
+    where: { id: { in: topClienteIds.map((c) => c.id) } },
+    select: { id: true, nombre: true },
+  });
+  const mapaNombres = new Map(nombresClientes.map((c) => [c.id, c.nombre]));
+  const porCliente = topClienteIds.map((c) => ({
+    cliente: mapaNombres.get(c.id) ?? "Sin cliente",
+    total: c.total,
+    cuenta: c.n,
+  }));
+
   return NextResponse.json({
     pendientes,
     reflejadas,
@@ -100,6 +129,7 @@ export async function GET() {
     totalesPorMoneda,
     porMes,
     porBanco,
+    porCliente,
     ultimas: ultimas.map((t) => ({
       id: t.id,
       fecha: t.fecha,

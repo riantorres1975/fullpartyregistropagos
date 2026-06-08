@@ -66,11 +66,16 @@ export async function PUT(request: NextRequest, ctx: Ctx) {
   return NextResponse.json({ ok: true });
 }
 
+// DELETE = mandar a la papelera (soft delete). No se borra de verdad; queda
+// recuperable. El borrado definitivo se hace desde /api/papelera.
 export async function DELETE(_req: NextRequest, ctx: Ctx) {
   const auth = await requireSession();
   if ("error" in auth) return auth.error;
   const { id } = await ctx.params;
-  await prisma.transferencia.delete({ where: { id } });
+  await prisma.transferencia.update({
+    where: { id },
+    data: { deletedAt: new Date() },
+  });
   await prisma.auditLog.create({
     data: { accion: "eliminar", entidad: "transferencia", entidadId: id },
   });

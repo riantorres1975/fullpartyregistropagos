@@ -35,6 +35,8 @@ model Cliente {
   // Momento en que se fijó la meta. El avance solo cuenta transferencias
   // registradas a partir de aquí (la meta arranca de cero al asignarla).
   metaDesde DateTime?
+  // Papelera: si tiene fecha, el cliente está "borrado" (recuperable). null = activo.
+  deletedAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -80,12 +82,15 @@ model Transferencia {
   estado        String   @default("pendiente") // "pendiente" | "reflejada"
   observaciones String?
   comprobante   String?  // ruta/URL del comprobante (opcional)
+  // Papelera: si tiene fecha, la transferencia está "borrada" (recuperable).
+  deletedAt     DateTime?
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
   @@index([fecha])
   @@index([estado])
   @@index([clienteId])
+  @@index([deletedAt])
 }
 
 // Registro de auditoría: qué se creó, editó o borró y cuándo.

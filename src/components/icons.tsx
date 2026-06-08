@@ -232,3 +232,52 @@ export const IconFolder = (p: Props) => (
     <path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2Z" />
   </Svg>
 );
+
+export const IconTrashBin = (p: Props) => (
+  <Svg {...p}>
+    <path d="M3 6h18" />
+    <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
+    <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+  </Svg>
+);
+
+export const IconRestore = (p: Props) => (
+  <Svg {...p}>
+    <path d="M3 12a9 9 0 1 0 3-6.7L3 8" />
+    <path d="M3 3v5h5" />
+  </Svg>
+);
+
+export const IconImage = (p: Props) => (
+  <Svg {...p}>
+    <rect x="3" y="3" width="18" height="18" rx="2" />
+    <circle cx="9" cy="9" r="1.5" />
+    <path d="m21 15-5-5L5 21" />
+  </Svg>
+);
+
+export const IconShare = (p: Props) => (
+  <Svg {...p}>
+    <circle cx="18" cy="5" r="3" />
+    <circle cx="6" cy="12" r="3" />
+    <circle cx="18" cy="19" r="3" />
+    <path d="m8.6 13.5 6.8 4M15.4 6.5 8.6 10.5" />
+  </Svg>
+);
+
+export const IconFingerprint = (p: Props) => (
+  <Svg {...p}>
+    <path d="M12 10a2 2 0 0 0-2 2c0 3-.5 5-1.5 6.5" />
+    <path d="M12 6a6 6 0 0 0-6 6c0 2-.3 3.5-1 5" />
+    <path d="M16 12a4 4 0 0 0-4-4" />
+    <path d="M18.5 16c.3-1.2.5-2.5.5-4a7 7 0 0 0-3.5-6" />
+    <path d="M11.5 18.5c.3-1.5.5-3.5.5-6.5" />
+  </Svg>
+);
+
+export const IconMail = (p: Props) => (
+  <Svg {...p}>
+    <rect x="3" y="5" width="18" height="14" rx="2" />
+    <path d="m3 7 9 6 9-6" />
+  </Svg>
+);

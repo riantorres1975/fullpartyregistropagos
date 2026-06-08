@@ -82,11 +82,16 @@ export async function PUT(request: NextRequest, ctx: Ctx) {
   return NextResponse.json({ ok: true });
 }
 
+// DELETE = mandar a la papelera (soft delete). El cliente deja de aparecer pero
+// es recuperable, y su historial de transferencias se conserva.
 export async function DELETE(_req: NextRequest, ctx: Ctx) {
   const auth = await requireSession();
   if ("error" in auth) return auth.error;
   const { id } = await ctx.params;
-  await prisma.cliente.delete({ where: { id } });
+  await prisma.cliente.update({
+    where: { id },
+    data: { deletedAt: new Date() },
+  });
   await prisma.auditLog.create({
     data: { accion: "eliminar", entidad: "cliente", entidadId: id },
   });

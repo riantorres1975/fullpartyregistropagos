@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
   const desde = sp.get("desde");
   const hasta = sp.get("hasta");
 
-  const where: Prisma.TransferenciaWhereInput = {};
+  const where: Prisma.TransferenciaWhereInput = { deletedAt: null };
   if (estado === "pendiente" || estado === "reflejada") where.estado = estado;
   if (clienteId) where.clienteId = clienteId;
   if (desde || hasta) {

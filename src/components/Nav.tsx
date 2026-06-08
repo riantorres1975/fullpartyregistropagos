@@ -11,6 +11,7 @@ import {
   IconChart,
   IconLogout,
   IconSettings,
+  IconTrashBin,
 } from "@/components/icons";
 
 const links = [
@@ -18,6 +19,7 @@ const links = [
   { href: "/transferencias", label: "Transferencias", Icon: IconTransfer },
   { href: "/clientes", label: "Clientes", Icon: IconUsers },
   { href: "/reportes", label: "Reportes", Icon: IconChart },
+  { href: "/papelera", label: "Papelera", Icon: IconTrashBin },
   { href: "/ajustes", label: "Ajustes", Icon: IconSettings },
 ];
 
