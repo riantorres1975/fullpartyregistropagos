@@ -75,26 +75,31 @@ export default function ImprimirPage() {
   }
 
   return (
-    <div
-      className="mx-auto max-w-4xl bg-white p-4 text-slate-900 sm:p-8"
-      style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}
-    >
-      {/* Barra de acciones (no se imprime) */}
-      <div className="mb-6 flex gap-2 print:hidden">
+    <div className="min-h-screen bg-slate-100 print:min-h-0 print:bg-white">
+      {/* Ajustes de página: márgenes mínimos para aprovechar todo el ancho */}
+      <style>{`@media print { @page { size: A4 portrait; margin: 8mm; } }`}</style>
+
+      {/* Barra de acciones fija (no se imprime) */}
+      <div className="sticky top-0 z-10 flex gap-2 border-b border-slate-200 bg-white/90 px-4 py-3 backdrop-blur print:hidden">
         <button
           onClick={() => window.print()}
-          className="inline-flex items-center gap-1.5 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white"
+          className="inline-flex items-center gap-1.5 rounded-lg bg-violet-600 px-4 py-2 text-sm font-semibold text-white hover:bg-violet-700"
         >
           <IconPrinter className="h-4 w-4" /> Imprimir / Guardar PDF
         </button>
         <button
           onClick={() => window.close()}
-          className="rounded-lg bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700"
+          className="rounded-lg bg-slate-200 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-300"
         >
           Cerrar
         </button>
       </div>
 
+      {/* La "hoja": en pantalla se ve como un documento; al imprimir ocupa todo el ancho */}
+      <div
+        className="mx-auto my-4 max-w-4xl bg-white p-6 text-slate-900 shadow-lg sm:p-10 print:my-0 print:max-w-none print:p-0 print:shadow-none"
+        style={{ WebkitPrintColorAdjust: "exact", printColorAdjust: "exact" }}
+      >
       <div className="mb-5 flex items-center gap-3 border-b-2 border-violet-600 pb-3">
         <div
           className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-white"
@@ -149,8 +154,8 @@ export default function ImprimirPage() {
               </thead>
               <tbody>
                 {g.items.map((t, i) => (
-                  <tr key={i}>
-                    <td className="border border-slate-400 px-2 py-1">{formatFecha(t.fecha)}</td>
+                  <tr key={i} className="even:bg-slate-50">
+                    <td className="border border-slate-400 px-2 py-1 whitespace-nowrap">{formatFecha(t.fecha)}</td>
                     <td className="border border-slate-400 px-2 py-1 text-right font-semibold">
                       {formatMonto(t.monto, t.moneda)}
                     </td>
@@ -202,6 +207,7 @@ export default function ImprimirPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
