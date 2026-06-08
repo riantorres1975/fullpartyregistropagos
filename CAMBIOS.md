@@ -52,18 +52,6 @@ redespliega solo).
 
 ## ⏳ Pendiente
 
-### Resumen diario por WhatsApp — código listo, falta activar
-Todo el código está hecho (`/api/resumen-diario`, `vercel.json` con el cron, botón de
-prueba en Ajustes). **Falta** la apikey de CallMeBot, que ahora mismo **está lleno**
-("This Bot is full"). Para activarlo cuando reabra:
-1. Enviar `I allow callmebot to send me messages` al **+34 644 51 95 23**.
-2. Guardar en Vercel las variables `CALLMEBOT_PHONE`, `CALLMEBOT_APIKEY`, `CRON_SECRET`.
-3. Probar con el botón "Enviar prueba ahora" en Ajustes.
-
-**Alternativa lista para implementar si CallMeBot no reabre:** enviar el resumen por
-**Telegram** (bot gratis con @BotFather, sin límites). Solo habría que cambiar el "sender"
-en `/api/resumen-diario`.
-
 ### Decidido NO implementar (por ahora)
 - **Estado "En revisión"** (un tercer estado además de pendiente/reflejada). El usuario
   pidió no implementarlo: agrega complejidad en dashboard/metas/reportes y aporta poco.

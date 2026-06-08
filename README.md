@@ -41,7 +41,7 @@ anterior de un solo archivo HTML.
 **App**
 - 📱 **Instalable** en el celular (PWA): ícono en pantalla de inicio y pantalla completa.
 - 🌙 **Modo oscuro** y diseño optimizado para móvil.
-- 📲 **Resumen diario por WhatsApp** a tu número (gratis, vía CallMeBot). *Ver "Pendiente".*
+- 📲 **Resumen diario por WhatsApp** a tu número, todos los días a las 9:00 p.m. (hora de México), gratis vía CallMeBot.
 
 ## 🧰 Tecnología
 
