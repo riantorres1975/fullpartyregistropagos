@@ -39,8 +39,10 @@ export default function Nav({ nombre }: { nombre: string }) {
     (nombre.replace(/[^a-zA-Z]/g, "").slice(0, 2) || "U").toUpperCase();
   const nombreBonito = nombre.charAt(0).toUpperCase() + nombre.slice(1);
 
+  // Degradado VERTICAL: el borde de arriba queda 100% en #3b1578, igual que la
+  // franja del sistema (themeColor), así no se ve ninguna línea de corte.
   const degradado =
-    "bg-[linear-gradient(115deg,#3b1578_0%,#6d28d9_48%,#db2777_115%)]";
+    "bg-[linear-gradient(180deg,#3b1578_0%,#6d28d9_62%,#c0287f_125%)]";
 
   return (
     <>
