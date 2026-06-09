@@ -13,6 +13,26 @@ export type DatosRecibo = {
 };
 
 export async function generarReciboBlob(d: DatosRecibo): Promise<Blob> {
+  const canvas = dibujarReciboCanvas(d);
+  return await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob falló"))), "image/png");
+  });
+}
+
+// Genera el archivo PNG de forma SÍNCRONA (sin promesas). Importante para
+// compartir en móvil: navigator.share() debe llamarse en el mismo gesto del
+// toque; si antes hacemos un await, iOS/Android "pierden" el permiso y falla.
+export function generarReciboFile(d: DatosRecibo, nombre: string): File {
+  const canvas = dibujarReciboCanvas(d);
+  const dataUrl = canvas.toDataURL("image/png");
+  const base64 = dataUrl.split(",")[1];
+  const bin = atob(base64);
+  const bytes = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  return new File([bytes], nombre, { type: "image/png" });
+}
+
+function dibujarReciboCanvas(d: DatosRecibo): HTMLCanvasElement {
   const escala = 2; // nitidez en pantallas de alta densidad
   const W = 640;
   const padding = 44;
@@ -114,9 +134,7 @@ export async function generarReciboBlob(d: DatosRecibo): Promise<Blob> {
   ctx.fillText("Generado con Mis Transferencias", W - padding, badgeY + 13);
   ctx.textAlign = "left";
 
-  return await new Promise<Blob>((resolve, reject) => {
-    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error("toBlob falló"))), "image/png");
-  });
+  return canvas;
 }
 
 function roundRect(

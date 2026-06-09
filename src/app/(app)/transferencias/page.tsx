@@ -9,7 +9,7 @@ import ClienteCombobox from "@/components/ClienteCombobox";
 import BancoSelect from "@/components/BancoSelect";
 import { comprimirImagen, prepararParaOCR } from "@/lib/imagen";
 import { analizarRecibo, type DatosRecibo } from "@/lib/ocr";
-import { generarReciboBlob } from "@/lib/recibo";
+import { generarReciboFile } from "@/lib/recibo";
 import {
   IconPlus,
   IconX,
@@ -297,46 +297,64 @@ export default function TransferenciasPage() {
     toast("Movida a la papelera");
   }
 
-  // Genera una imagen tipo comprobante y la comparte (WhatsApp, etc.) o, si el
-  // dispositivo no soporta compartir archivos, la descarga.
-  async function compartirRecibo(t: Transferencia) {
+  // Descarga la imagen del recibo (respaldo cuando no se puede compartir).
+  function descargarRecibo(file: File) {
+    const url = URL.createObjectURL(file);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = file.name;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  // Genera una imagen tipo comprobante y la comparte (WhatsApp, etc.). OJO:
+  // navigator.share() debe llamarse DENTRO del gesto del toque, sin ningún await
+  // antes; por eso el archivo se genera de forma síncrona (generarReciboFile).
+  // Si el dispositivo no comparte archivos, o falla, se descarga.
+  function compartirRecibo(t: Transferencia) {
+    let file: File;
     try {
-      const blob = await generarReciboBlob({
-        fecha: formatFecha(t.fecha),
-        cliente: t.cliente?.nombre ?? "Sin cliente",
-        montoStr: formatMonto(t.monto, t.moneda),
-        bancoDestino: t.bancoDestino ?? t.cuenta?.banco ?? null,
-        cuenta: t.cuenta?.enmascarado ?? null,
-        referencia: t.referencia,
-        reflejada: t.estado === "reflejada",
-      });
-      const file = new File([blob], `comprobante-${t.id}.png`, { type: "image/png" });
-      const nav = navigator as Navigator & {
-        canShare?: (data?: ShareData) => boolean;
-      };
-      if (nav.canShare && nav.canShare({ files: [file] })) {
-        try {
-          await nav.share({
-            files: [file],
-            title: "Comprobante",
-            text: `Comprobante de ${formatMonto(t.monto, t.moneda)}`,
-          });
-        } catch {
-          /* el usuario canceló: no hacemos nada */
-        }
-        return;
-      }
-      // Sin compartir nativo (escritorio): descargamos la imagen.
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `comprobante-${t.id}.png`;
-      a.click();
-      URL.revokeObjectURL(url);
-      toast("Comprobante descargado");
+      file = generarReciboFile(
+        {
+          fecha: formatFecha(t.fecha),
+          cliente: t.cliente?.nombre ?? "Sin cliente",
+          montoStr: formatMonto(t.monto, t.moneda),
+          bancoDestino: t.bancoDestino ?? t.cuenta?.banco ?? null,
+          cuenta: t.cuenta?.enmascarado ?? null,
+          referencia: t.referencia,
+          reflejada: t.estado === "reflejada",
+        },
+        `comprobante-${t.id}.png`,
+      );
     } catch {
       toast("No se pudo generar el comprobante", "error");
+      return;
     }
+
+    const nav = navigator as Navigator & {
+      canShare?: (data?: ShareData) => boolean;
+    };
+    if (nav.share && nav.canShare && nav.canShare({ files: [file] })) {
+      // Sin await: se llama en el mismo gesto para no perder el permiso en móvil.
+      nav
+        .share({
+          files: [file],
+          title: "Comprobante",
+          text: `Comprobante de ${formatMonto(t.monto, t.moneda)}`,
+        })
+        .catch((err: { name?: string }) => {
+          // AbortError = el usuario cerró el menú: no hacemos nada.
+          if (err?.name !== "AbortError") {
+            descargarRecibo(file);
+            toast("No se pudo abrir el menú de compartir; imagen descargada");
+          }
+        });
+      return;
+    }
+
+    // Sin compartir nativo (escritorio u otros): descargamos la imagen.
+    descargarRecibo(file);
+    toast("Comprobante descargado");
   }
 
   const totalPaginas = Math.max(1, Math.ceil(total / pageSize));
