@@ -11,6 +11,9 @@ export function formatFecha(fecha: string | Date): string {
     day: "2-digit",
     month: "short",
     year: "numeric",
+    // Las fechas se guardan como medianoche UTC (fecha de calendario pura). Hay
+    // que formatearlas en UTC; si no, en CDMX (UTC-6) se mostraría el día previo.
+    timeZone: "UTC",
   }).format(d);
 }
 
