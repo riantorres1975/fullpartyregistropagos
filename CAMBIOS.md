@@ -46,7 +46,26 @@ redespliega solo).
 - **PIN de bloqueo** local opcional (pantalla Ajustes).
 - **Cambiar contraseña** desde la app (pantalla Ajustes).
 - Reporte imprimible con **encabezado de marca** y colores en el PDF.
-- **Resumen diario por WhatsApp** vía CallMeBot + Cron de Vercel (9:00 p.m.) — *ver abajo*.
+- **Resumen diario por WhatsApp** vía CallMeBot + Cron de Vercel.
+
+### Lote del 2026-06-08
+- **Reporte imprimible a todo el ancho** de la hoja (márgenes mínimos) y vista
+  tipo documento; filas alternadas.
+- **Resumen por WhatsApp activado** y movido a las **7:00 p.m.**; además **semanal**
+  (domingos) automático, y **del mes** / **solo atrasadas** a un toque en Ajustes.
+- **Papelera de reciclaje**: borrar (transferencias y clientes) manda a la papelera;
+  se puede restaurar, eliminar definitivo o vaciar. Todas las vistas la ignoran.
+- **Buscar transferencias por monto** (además de referencia/cliente).
+- **Aviso de posible duplicado** al registrar (mismo cliente, monto y día), con
+  opción de continuar.
+- **Comprobante en imagen** por transferencia: genera un recibo (canvas) para
+  compartir por WhatsApp o descargar.
+- **Más gráficas** en el Inicio: por **cliente** (MXN) y **montos por mes**.
+- **Desbloqueo con huella / rostro** (WebAuthn local) además del PIN.
+- **Respaldo cifrado con contraseña** (se cifra en el navegador) + página
+  **/descifrar** para recuperarlo.
+- **Respaldo automático por correo** (Resend), enganchado al cron semanal, con
+  botón de prueba en Ajustes.
 
 ---
 
@@ -56,13 +75,20 @@ redespliega solo).
 - **Estado "En revisión"** (un tercer estado además de pendiente/reflejada). El usuario
   pidió no implementarlo: agrega complejidad en dashboard/metas/reportes y aporta poco.
 
+### Por activar (código listo, falta configurar claves)
+- **Respaldo automático por correo (Resend)**: ya está hecho y enganchado al cron
+  semanal. Falta crear cuenta en resend.com y guardar `RESEND_API_KEY` y
+  `BACKUP_EMAIL` en Vercel. Mientras tanto, el respaldo manual (JSON y cifrado)
+  funciona desde Reportes.
+- **Resumen mensual / solo-atrasadas automáticos**: el plan gratis de Vercel
+  permite 2 crons (ya usados por el diario y el semanal). Por ahora se envían a
+  mano desde Ajustes; con plan Pro se podrían automatizar.
+
 ### Ideas sugeridas, sin empezar
-- **Respaldo automático programado**: requiere un servicio de correo gratis (ej. Resend)
-  para enviarse solo; hoy el respaldo es manual (botón en Reportes).
-- **Biometría (huella)** para desbloquear: hoy hay PIN; la huella requiere WebAuthn.
 - **Reporte PDF con logo propio** si más adelante hay un archivo de logo.
-- **Enviar resumen/recordatorios a clientes** (no solo a un número): necesitaría la API
-  oficial de WhatsApp (Meta) o el bot propio del usuario siempre encendido.
+- **Enviar resumen/recordatorios a clientes** (mensajería directa, no solo el
+  comprobante en imagen): necesitaría la API oficial de WhatsApp (Meta) o un bot
+  propio siempre encendido.
 
 ---
 

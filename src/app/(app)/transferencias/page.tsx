@@ -9,6 +9,7 @@ import ClienteCombobox from "@/components/ClienteCombobox";
 import BancoSelect from "@/components/BancoSelect";
 import { comprimirImagen, prepararParaOCR } from "@/lib/imagen";
 import { analizarRecibo, type DatosRecibo } from "@/lib/ocr";
+import { generarReciboBlob } from "@/lib/recibo";
 import {
   IconPlus,
   IconX,
@@ -20,6 +21,7 @@ import {
   IconTrash,
   IconFolder,
   IconCopy,
+  IconImage,
 } from "@/components/icons";
 
 type CuentaOpt = {
@@ -282,10 +284,52 @@ export default function TransferenciasPage() {
   }
 
   async function eliminar(id: string) {
-    if (!confirm("¿Eliminar esta transferencia?")) return;
+    if (!confirm("¿Mandar esta transferencia a la papelera?")) return;
     await fetch(`/api/transferencias/${id}`, { method: "DELETE" });
     cargar();
-    toast("Transferencia eliminada");
+    toast("Movida a la papelera");
+  }
+
+  // Genera una imagen tipo comprobante y la comparte (WhatsApp, etc.) o, si el
+  // dispositivo no soporta compartir archivos, la descarga.
+  async function compartirRecibo(t: Transferencia) {
+    try {
+      const blob = await generarReciboBlob({
+        fecha: formatFecha(t.fecha),
+        cliente: t.cliente?.nombre ?? "Sin cliente",
+        montoStr: formatMonto(t.monto, t.moneda),
+        bancoDestino: t.bancoDestino ?? t.cuenta?.banco ?? null,
+        cuenta: t.cuenta?.enmascarado ?? null,
+        referencia: t.referencia,
+        reflejada: t.estado === "reflejada",
+      });
+      const file = new File([blob], `comprobante-${t.id}.png`, { type: "image/png" });
+      const nav = navigator as Navigator & {
+        canShare?: (data?: ShareData) => boolean;
+      };
+      if (nav.canShare && nav.canShare({ files: [file] })) {
+        try {
+          await nav.share({
+            files: [file],
+            title: "Comprobante",
+            text: `Comprobante de ${formatMonto(t.monto, t.moneda)}`,
+          });
+        } catch {
+          /* el usuario canceló: no hacemos nada */
+        }
+        return;
+      }
+      // Sin compartir nativo (escritorio): descargamos la imagen.
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `comprobante-${t.id}.png`;
+      a.click();
+      URL.revokeObjectURL(url);
+      toast("Comprobante descargado");
+    } catch {
+      toast("No se pudo generar el comprobante", "error");
+    }
   }
 
   const totalPaginas = Math.max(1, Math.ceil(total / pageSize));
@@ -632,6 +676,12 @@ export default function TransferenciasPage() {
                     </button>
                   )}
                   <button
+                    onClick={() => compartirRecibo(t)}
+                    className="btn-secondary flex-1 py-2 text-xs"
+                  >
+                    <IconImage className="h-4 w-4" /> Recibo
+                  </button>
+                  <button
                     onClick={() => duplicar(t)}
                     className="btn-secondary flex-1 py-2 text-xs"
                   >
@@ -747,6 +797,13 @@ export default function TransferenciasPage() {
                         <IconPaperclip className="h-4 w-4" />
                       </button>
                     )}
+                    <button
+                      onClick={() => compartirRecibo(t)}
+                      className="mr-1 inline-flex rounded p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600"
+                      title="Comprobante para el cliente (imagen)"
+                    >
+                      <IconImage className="h-4 w-4" />
+                    </button>
                     <button
                       onClick={() => duplicar(t)}
                       className="mr-1 inline-flex rounded p-1.5 hover:bg-slate-200 dark:hover:bg-slate-600"

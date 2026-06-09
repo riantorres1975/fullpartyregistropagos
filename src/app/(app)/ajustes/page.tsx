@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { toast } from "@/lib/toast";
 import { hashPin, PIN_HASH_KEY, PIN_OK_KEY } from "@/lib/pin";
+import { tieneBio, bioDisponible, registrarBio, quitarBio } from "@/lib/bio";
 import {
   IconLock,
   IconCheck,
@@ -11,6 +12,7 @@ import {
   IconSettings,
   IconWhatsApp,
   IconMail,
+  IconFingerprint,
 } from "@/components/icons";
 
 export default function AjustesPage() {
@@ -24,6 +26,77 @@ export default function AjustesPage() {
       <RespaldoCorreo />
       <CambiarContrasena />
       <ConfigurarPin />
+      <ConfigurarHuella />
+    </div>
+  );
+}
+
+// ─── Desbloqueo con huella / rostro (WebAuthn local) ─────────────────────────
+function ConfigurarHuella() {
+  const [disponible, setDisponible] = useState<boolean | null>(null);
+  const [tiene, setTiene] = useState(false);
+  const [procesando, setProcesando] = useState(false);
+
+  useEffect(() => {
+    setTiene(tieneBio());
+    bioDisponible().then(setDisponible);
+  }, []);
+
+  async function activar() {
+    setProcesando(true);
+    try {
+      const ok = await registrarBio();
+      if (ok) {
+        setTiene(true);
+        toast("Huella activada en este dispositivo");
+      } else {
+        toast("No se pudo activar la huella", "error");
+      }
+    } finally {
+      setProcesando(false);
+    }
+  }
+
+  function quitar() {
+    if (!confirm("¿Quitar el desbloqueo con huella?")) return;
+    quitarBio();
+    setTiene(false);
+    toast("Huella quitada");
+  }
+
+  return (
+    <div className="card space-y-3">
+      <h2 className="flex items-center gap-2 font-semibold">
+        <IconFingerprint className="h-5 w-5 text-violet-500" /> Desbloqueo con
+        huella
+      </h2>
+      <p className="text-sm text-slate-500">
+        Abre la app con la huella o el rostro de este dispositivo (igual que el
+        PIN, pero más rápido).
+      </p>
+      {disponible === false ? (
+        <p className="text-sm text-amber-600">
+          Este dispositivo o navegador no tiene huella/rostro disponible.
+        </p>
+      ) : tiene ? (
+        <div className="flex flex-wrap items-center gap-3">
+          <span className="flex items-center gap-1.5 text-sm text-emerald-600">
+            <IconCheck className="h-4 w-4" /> Huella activada en este dispositivo
+          </span>
+          <button onClick={quitar} className="btn-danger px-3 py-1.5 text-sm">
+            Quitar huella
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={activar}
+          className="btn-primary"
+          disabled={procesando || disponible === null}
+        >
+          <IconFingerprint className="h-4 w-4" />
+          {procesando ? "Activando…" : "Activar huella"}
+        </button>
+      )}
     </div>
   );
 }

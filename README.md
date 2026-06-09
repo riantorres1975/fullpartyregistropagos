@@ -13,7 +13,9 @@ anterior de un solo archivo HTML.
   En la base de datos se ven ilegibles; solo se guardan los últimos 4 dígitos en claro.
 - 👁️ **Enmascarado**: en pantalla solo ves `•••• •••• •••• 1234`, con botón "Mostrar".
 - 🔢 **PIN de bloqueo** opcional en el dispositivo (candado local, además de la sesión).
+- 🫆 **Desbloqueo con huella / rostro** (biometría del dispositivo, opcional).
 - 🔑 **Cambiar contraseña** desde la app (pantalla Ajustes).
+- 🗑️ **Papelera de reciclaje**: lo que borras se puede restaurar o eliminar definitivo.
 - 📝 **Auditoría**: registra creaciones, ediciones, borrados y accesos.
 
 **Clientes**
@@ -27,21 +29,29 @@ anterior de un solo archivo HTML.
 
 **Transferencias**
 - 💸 Registro, filtros, estados (pendiente/reflejada), edición y borrado.
+- 🔎 **Buscar** por referencia, cliente **o monto**.
 - ✔️ **Marcar reflejada de un toque** (en la lista y en el Inicio).
 - 📄 **Duplicar** una transferencia para registrar otra parecida rápido.
+- ⚠️ **Aviso de posible duplicado** al registrar (mismo cliente, monto y día).
 - ⏱️ **Aviso de pendientes atrasadas** (3+ días sin reflejarse).
+- 🧾 **Comprobante en imagen** para el cliente: genera un recibo bonito y lo
+  compartes por WhatsApp o lo descargas.
 - 📷 **Comprobante por foto** (cámara directa) con **lectura automática (OCR)** de
   monto, referencia y banco. Se comprime y se guarda en WebP.
 
 **Inicio y reportes**
-- 🏠 Dashboard con totales por moneda, gráfica por mes, **totales por banco** y últimas.
+- 🏠 Dashboard con totales por moneda, gráfica por mes (con montos), **por banco**
+  y **por cliente**, y últimas transferencias.
 - 📊 Reportes: filtros, resumen en vivo, exportar a Excel/CSV, respaldo JSON,
   reporte imprimible/PDF agrupado por cliente con subtotales.
+- 🔒 **Respaldo cifrado con contraseña** + página para **descifrarlo**.
+- 📧 **Respaldo automático por correo** cada semana (gratis vía Resend).
 
 **App**
 - 📱 **Instalable** en el celular (PWA): ícono en pantalla de inicio y pantalla completa.
 - 🌙 **Modo oscuro** y diseño optimizado para móvil.
-- 📲 **Resumen diario por WhatsApp** a tu número, todos los días a las 9:00 p.m. (hora de México), gratis vía CallMeBot.
+- 📲 **Resúmenes por WhatsApp** (gratis vía CallMeBot): diario a las 7:00 p.m. y
+  semanal los domingos; del mes y "solo atrasadas" a un toque desde Ajustes.
 
 ## 🧰 Tecnología
 
@@ -69,9 +79,10 @@ Ver `.env.example`. Las 3 críticas:
 - `ENCRYPTION_KEY` — 32 bytes base64. **No la pierdas ni la cambies con datos guardados.**
 - `SESSION_SECRET` — firma las sesiones.
 
-Opcionales (resumen diario por WhatsApp):
-- `CALLMEBOT_PHONE`, `CALLMEBOT_APIKEY` — para enviar el resumen a tu número.
+Opcionales:
+- `CALLMEBOT_PHONE`, `CALLMEBOT_APIKEY` — resúmenes por WhatsApp a tu número.
 - `CRON_SECRET` — protege el envío automático (el Cron de Vercel lo manda como Bearer).
+- `RESEND_API_KEY`, `BACKUP_EMAIL` — respaldo automático por correo (Resend).
 
 ## 📜 Historial y pendientes
 

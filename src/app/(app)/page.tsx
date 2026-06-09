@@ -21,8 +21,9 @@ type Dashboard = {
   totalTransferencias: number;
   totalClientes: number;
   totalesPorMoneda: Record<string, { pendiente: number; reflejada: number }>;
-  porMes: { label: string; pendiente: number; reflejada: number }[];
+  porMes: { label: string; pendiente: number; reflejada: number; montoMXN: number }[];
   porBanco: { banco: string; total: number; cuenta: number }[];
+  porCliente: { cliente: string; total: number; cuenta: number }[];
   ultimas: {
     id: string;
     fecha: string;
@@ -126,12 +127,26 @@ export default function DashboardPage() {
         <GraficaMeses datos={data.porMes} />
       </div>
 
-      {data.porBanco.length > 0 && (
-        <div className="card">
-          <h2 className="mb-3 font-semibold">Por banco destino (MXN)</h2>
-          <BancoBarras datos={data.porBanco} />
-        </div>
-      )}
+      <div className="grid gap-6 lg:grid-cols-2">
+        {data.porBanco.length > 0 && (
+          <div className="card">
+            <h2 className="mb-3 font-semibold">Por banco destino (MXN)</h2>
+            <BancoBarras
+              datos={data.porBanco.map((b) => ({ etiqueta: b.banco, total: b.total }))}
+              color="bg-violet-500"
+            />
+          </div>
+        )}
+        {data.porCliente.length > 0 && (
+          <div className="card">
+            <h2 className="mb-3 font-semibold">Por cliente (MXN)</h2>
+            <BancoBarras
+              datos={data.porCliente.map((c) => ({ etiqueta: c.cliente, total: c.total }))}
+              color="bg-pink-500"
+            />
+          </div>
+        )}
+      </div>
 
       <div className="card">
         <h2 className="mb-3 font-semibold">Últimas transferencias</h2>
@@ -233,26 +248,28 @@ function Stat({
   );
 }
 
-// Barras horizontales con el total enviado por banco destino (MXN).
+// Barras horizontales con un total por etiqueta (banco o cliente), en MXN.
 function BancoBarras({
   datos,
+  color = "bg-violet-500",
 }: {
-  datos: { banco: string; total: number; cuenta: number }[];
+  datos: { etiqueta: string; total: number }[];
+  color?: string;
 }) {
   const max = Math.max(1, ...datos.map((d) => d.total));
   return (
     <div className="space-y-2.5">
       {datos.map((d) => (
-        <div key={d.banco}>
+        <div key={d.etiqueta}>
           <div className="mb-0.5 flex items-center justify-between gap-2 text-sm">
-            <span className="min-w-0 truncate font-medium">{d.banco}</span>
+            <span className="min-w-0 truncate font-medium">{d.etiqueta}</span>
             <span className="shrink-0 font-semibold">
               {formatMonto(d.total, "MXN")}
             </span>
           </div>
           <div className="h-2 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
             <div
-              className="h-full rounded-full bg-violet-500"
+              className={`h-full rounded-full ${color}`}
               style={{ width: `${Math.max(4, (d.total / max) * 100)}%` }}
             />
           </div>
@@ -265,7 +282,7 @@ function BancoBarras({
 function GraficaMeses({
   datos,
 }: {
-  datos: { label: string; pendiente: number; reflejada: number }[];
+  datos: { label: string; pendiente: number; reflejada: number; montoMXN: number }[];
 }) {
   const max = Math.max(1, ...datos.map((d) => d.pendiente + d.reflejada));
   const sinDatos = datos.every((d) => d.pendiente + d.reflejada === 0);
@@ -303,12 +320,16 @@ function GraficaMeses({
       </div>
       <div className="mt-2 flex justify-between gap-2">
         {datos.map((d) => (
-          <span
-            key={d.label}
-            className="flex-1 text-center text-xs capitalize text-slate-500 dark:text-slate-400"
-          >
-            {d.label}
-          </span>
+          <div key={d.label} className="flex-1 text-center">
+            <span className="block text-xs capitalize text-slate-500 dark:text-slate-400">
+              {d.label}
+            </span>
+            {d.montoMXN > 0 && (
+              <span className="block text-[10px] font-medium text-violet-500">
+                {formatMonto(d.montoMXN, "MXN")}
+              </span>
+            )}
+          </div>
         ))}
       </div>
       <div className="mt-4 flex justify-center gap-4 text-xs text-slate-500 dark:text-slate-400">
