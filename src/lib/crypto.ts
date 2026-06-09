@@ -63,6 +63,29 @@ export function decrypt(payload: string): string {
 }
 
 /**
+ * Cifra la imagen del comprobante (un data URL "data:image/...;base64,..."),
+ * igual que los números de cuenta. Así nunca se guarda en claro: ni en la base
+ * de datos ni en los respaldos. Un comprobante trae la clave de rastreo, con la
+ * que se podría consultar el CEP en Banxico, por eso debe ir cifrado.
+ */
+export function cifrarComprobante(dataUrl: string): string {
+  return encrypt(dataUrl);
+}
+
+/**
+ * Descifra un comprobante. Compatibilidad: los registros antiguos se guardaron
+ * en claro como data URL ("data:..."); esos se devuelven tal cual.
+ */
+export function descifrarComprobante(guardado: string): string {
+  if (guardado.startsWith("data:")) return guardado; // registro antiguo, en claro
+  try {
+    return decrypt(guardado);
+  } catch {
+    return guardado; // por si acaso, no romper la vista
+  }
+}
+
+/**
  * Devuelve los últimos 4 caracteres (dígitos) de un número, ignorando
  * espacios y guiones. Se guardan en claro para poder enmascarar.
  */

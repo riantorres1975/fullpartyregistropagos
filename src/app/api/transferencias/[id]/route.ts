@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/guard";
+import { cifrarComprobante, descifrarComprobante } from "@/lib/crypto";
 
 const schema = z.object({
   fecha: z.string().optional(),
@@ -28,7 +29,11 @@ export async function GET(_req: NextRequest, ctx: Ctx) {
   if (!t) {
     return NextResponse.json({ error: "No encontrada" }, { status: 404 });
   }
-  return NextResponse.json(t);
+  // El comprobante se guarda cifrado; se descifra solo aquí para mostrarlo.
+  return NextResponse.json({
+    ...t,
+    comprobante: t.comprobante ? descifrarComprobante(t.comprobante) : null,
+  });
 }
 
 export async function PUT(request: NextRequest, ctx: Ctx) {
@@ -57,7 +62,9 @@ export async function PUT(request: NextRequest, ctx: Ctx) {
       ...(d.referencia !== undefined ? { referencia: d.referencia || null } : {}),
       ...(d.estado ? { estado: d.estado } : {}),
       ...(d.observaciones !== undefined ? { observaciones: d.observaciones || null } : {}),
-      ...(d.comprobante !== undefined ? { comprobante: d.comprobante || null } : {}),
+      ...(d.comprobante !== undefined
+        ? { comprobante: d.comprobante ? cifrarComprobante(d.comprobante) : null }
+        : {}),
     },
   });
   await prisma.auditLog.create({

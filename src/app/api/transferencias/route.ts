@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { maskNumero } from "@/lib/crypto";
+import { maskNumero, cifrarComprobante } from "@/lib/crypto";
 import { requireSession } from "@/lib/guard";
 
 const schema = z.object({
@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
       referencia: d.referencia || null,
       estado: d.estado,
       observaciones: d.observaciones || null,
-      comprobante: d.comprobante || null,
+      comprobante: d.comprobante ? cifrarComprobante(d.comprobante) : null,
     },
   });
   await prisma.auditLog.create({
