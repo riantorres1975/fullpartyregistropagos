@@ -34,10 +34,10 @@ export default function Nav({ nombre }: { nombre: string }) {
   }
 
   return (
-    <header className="sticky top-0 z-40 bg-[linear-gradient(115deg,#3b1578_0%,#6d28d9_48%,#db2777_115%)] text-white shadow-lg shadow-violet-950/20">
+    <header className="sticky top-0 z-40 bg-[#f4f1ec]/80 text-slate-800 backdrop-blur-md dark:bg-[#0e0c15]/80 dark:text-white sm:bg-[linear-gradient(115deg,#3b1578_0%,#6d28d9_48%,#db2777_115%)] sm:text-white sm:shadow-lg sm:shadow-violet-950/20">
       <div className="mx-auto max-w-5xl px-3 py-2.5 sm:px-4">
         <div className="flex items-center justify-between gap-2">
-          <span className="flex items-center gap-2 font-display text-base font-extrabold tracking-tight sm:text-lg">
+          <span className="flex items-center gap-2 font-display text-base font-extrabold tracking-tight text-violet-700 dark:text-white sm:text-lg sm:text-white">
             <IconCard className="h-5 w-5" />
             Mis Transferencias
           </span>
@@ -46,7 +46,7 @@ export default function Nav({ nombre }: { nombre: string }) {
             <ThemeToggle />
             <button
               onClick={logout}
-              className="flex items-center gap-1.5 rounded-lg bg-white/15 px-3 py-2 text-sm hover:bg-white/25"
+              className="flex items-center gap-1.5 rounded-lg bg-black/5 px-3 py-2 text-sm text-slate-600 hover:bg-black/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/20 sm:bg-white/15 sm:text-white sm:hover:bg-white/25"
             >
               <IconLogout className="h-4 w-4" />
               <span className="hidden sm:inline">Salir</span>

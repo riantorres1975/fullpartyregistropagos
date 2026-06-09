@@ -27,7 +27,12 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#4c1d95",
+  // La franja superior del navegador se funde con el fondo de la app (cremita
+  // en claro, casi negro en oscuro) para que no se sienta "encerrado".
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f4f1ec" },
+    { media: "(prefers-color-scheme: dark)", color: "#0e0c15" },
+  ],
   width: "device-width",
   initialScale: 1,
 };

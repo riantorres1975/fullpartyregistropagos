@@ -22,7 +22,7 @@ export default function ThemeToggle() {
   return (
     <button
       onClick={alternar}
-      className="flex items-center justify-center rounded-lg bg-white/15 p-2 hover:bg-white/25"
+      className="flex items-center justify-center rounded-lg bg-black/5 p-2 text-slate-600 hover:bg-black/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/20 sm:bg-white/15 sm:text-white sm:hover:bg-white/25"
       title={oscuro ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
       aria-label="Cambiar tema"
     >
