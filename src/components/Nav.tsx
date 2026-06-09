@@ -34,10 +34,13 @@ export default function Nav({ nombre }: { nombre: string }) {
   }
 
   return (
-    <header className="sticky top-0 z-40 bg-[#f4f1ec]/80 text-slate-800 backdrop-blur-md dark:bg-[#0e0c15]/80 dark:text-white sm:bg-[linear-gradient(115deg,#3b1578_0%,#6d28d9_48%,#db2777_115%)] sm:text-white sm:shadow-lg sm:shadow-violet-950/20">
-      <div className="mx-auto max-w-5xl px-3 py-2.5 sm:px-4">
-        <div className="flex items-center justify-between gap-2">
-          <span className="flex items-center gap-2 font-display text-base font-extrabold tracking-tight text-violet-700 dark:text-white sm:text-lg sm:text-white">
+    // En escritorio: encabezado con degradado, marca y opciones arriba.
+    // En móvil: no hay barra de arriba (más espacio); el menú va abajo y las
+    // opciones (tema/salir) viven en Ajustes.
+    <header className="sm:sticky sm:top-0 sm:z-40 sm:bg-[linear-gradient(115deg,#3b1578_0%,#6d28d9_48%,#db2777_115%)] sm:text-white sm:shadow-lg sm:shadow-violet-950/20">
+      <div className="sm:mx-auto sm:max-w-5xl sm:px-4 sm:py-2.5">
+        <div className="hidden items-center justify-between gap-2 sm:flex">
+          <span className="flex items-center gap-2 font-display text-lg font-extrabold tracking-tight text-white">
             <IconCard className="h-5 w-5" />
             Mis Transferencias
           </span>
@@ -46,7 +49,7 @@ export default function Nav({ nombre }: { nombre: string }) {
             <ThemeToggle />
             <button
               onClick={logout}
-              className="flex items-center gap-1.5 rounded-lg bg-black/5 px-3 py-2 text-sm text-slate-600 hover:bg-black/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/20 sm:bg-white/15 sm:text-white sm:hover:bg-white/25"
+              className="flex items-center gap-1.5 rounded-lg bg-white/15 px-3 py-2 text-sm text-white hover:bg-white/25"
             >
               <IconLogout className="h-4 w-4" />
               <span className="hidden sm:inline">Salir</span>

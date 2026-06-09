@@ -3,7 +3,13 @@
 import { useEffect, useState } from "react";
 import { IconSun, IconMoon } from "@/components/icons";
 
-export default function ThemeToggle() {
+export default function ThemeToggle({
+  className,
+  showLabel = false,
+}: {
+  className?: string;
+  showLabel?: boolean;
+}) {
   const [oscuro, setOscuro] = useState(false);
 
   useEffect(() => {
@@ -22,11 +28,17 @@ export default function ThemeToggle() {
   return (
     <button
       onClick={alternar}
-      className="flex items-center justify-center rounded-lg bg-black/5 p-2 text-slate-600 hover:bg-black/10 dark:bg-white/10 dark:text-white dark:hover:bg-white/20 sm:bg-white/15 sm:text-white sm:hover:bg-white/25"
+      className={
+        className ??
+        "flex items-center justify-center rounded-lg bg-white/15 p-2 text-white hover:bg-white/25"
+      }
       title={oscuro ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
       aria-label="Cambiar tema"
     >
       {oscuro ? <IconSun className="h-4 w-4" /> : <IconMoon className="h-4 w-4" />}
+      {showLabel && (
+        <span className="ml-2">{oscuro ? "Modo claro" : "Modo oscuro"}</span>
+      )}
     </button>
   );
 }
