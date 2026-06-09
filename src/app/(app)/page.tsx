@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
 import Link from "next/link";
 import { formatMonto, formatFecha } from "@/lib/format";
@@ -11,6 +12,11 @@ import {
   IconCheckCircle,
   IconCard,
   IconUsers,
+  IconTransfer,
+  IconChart,
+  IconTrashBin,
+  IconEye,
+  IconEyeOff,
 } from "@/components/icons";
 
 type IconComp = (p: { className?: string }) => React.ReactElement;
@@ -37,6 +43,7 @@ type Dashboard = {
 export default function DashboardPage() {
   const { data, mutate } = useSWR<Dashboard>("/api/dashboard");
   const { mutate: globalMutate } = useSWRConfig();
+  const [ocultar, setOcultar] = useState(false);
 
   // Marca/desmarca reflejada desde aquí mismo, sin abrir la transferencia.
   async function toggleEstado(id: string, estadoActual: string) {
@@ -57,14 +64,56 @@ export default function DashboardPage() {
     return <DashboardSkeleton />;
   }
 
+  const mxn = data.totalesPorMoneda["MXN"] ?? { pendiente: 0, reflejada: 0 };
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-bold">Resumen</h1>
-        <Link href="/transferencias" className="btn-primary shrink-0">
-          <IconPlus className="h-4 w-4" />
-          Nueva <span className="hidden sm:inline">transferencia</span>
+      {/* Tarjeta resumen tipo Spin: se recarga sobre el header morado. */}
+      <div className="-mt-8 rounded-3xl bg-white p-5 shadow-xl ring-1 ring-black/5 dark:bg-slate-800 dark:ring-white/10 sm:mt-0">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="text-sm text-slate-500 dark:text-slate-400">
+              Reflejado (MXN)
+            </p>
+            <p className="font-display text-3xl font-extrabold">
+              {ocultar ? "••••••" : formatMonto(mxn.reflejada, "MXN")}
+            </p>
+            <p className="mt-1 flex items-center gap-1 text-sm text-amber-600">
+              <IconClock className="h-4 w-4" /> Por reflejar:{" "}
+              {ocultar ? "••••" : formatMonto(mxn.pendiente, "MXN")}
+            </p>
+          </div>
+          <button
+            onClick={() => setOcultar((v) => !v)}
+            aria-label="Mostrar u ocultar montos"
+            className="rounded-full p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
+          >
+            {ocultar ? (
+              <IconEyeOff className="h-5 w-5" />
+            ) : (
+              <IconEye className="h-5 w-5" />
+            )}
+          </button>
+        </div>
+        <Link
+          href="/transferencias"
+          className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(115deg,#6d28d9_0%,#db2777_115%)] px-4 py-3 font-semibold text-white shadow-md shadow-violet-600/25 transition-transform active:scale-[0.99]"
+        >
+          <IconPlus className="h-5 w-5" /> Nueva transferencia
         </Link>
+      </div>
+
+      {/* Accesos rápidos (tiles circulares). */}
+      <div>
+        <h2 className="mb-3 text-sm font-semibold text-slate-500 dark:text-slate-400">
+          Accesos rápidos
+        </h2>
+        <div className="grid grid-cols-4 gap-2">
+          <AccionRapida href="/transferencias" label="Transferir" Icon={IconTransfer} />
+          <AccionRapida href="/clientes" label="Clientes" Icon={IconUsers} />
+          <AccionRapida href="/reportes" label="Reportes" Icon={IconChart} />
+          <AccionRapida href="/papelera" label="Papelera" Icon={IconTrashBin} />
+        </div>
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -185,6 +234,31 @@ export default function DashboardPage() {
         )}
       </div>
     </div>
+  );
+}
+
+// Tile de acceso rápido (círculo con icono + etiqueta), estilo Spin.
+function AccionRapida({
+  href,
+  label,
+  Icon,
+}: {
+  href: string;
+  label: string;
+  Icon: IconComp;
+}) {
+  return (
+    <Link
+      href={href}
+      className="flex flex-col items-center gap-1.5 text-center transition-transform active:scale-95"
+    >
+      <span className="flex h-14 w-14 items-center justify-center rounded-2xl bg-violet-100 text-violet-700 shadow-sm dark:bg-violet-500/15 dark:text-violet-300">
+        <Icon className="h-6 w-6" />
+      </span>
+      <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
+        {label}
+      </span>
+    </Link>
   );
 }
 
