@@ -21,8 +21,8 @@ export default async function AppLayout({
       <SWRProvider>
         <Nav nombre={nombre} />
         <main className="mx-auto w-full max-w-5xl flex-1 p-4">{children}</main>
-        {/* pb extra en móvil para no quedar bajo la barra fija inferior */}
-        <footer className="flex items-center justify-center gap-1.5 pb-24 pt-6 text-center text-xs text-slate-400 sm:pb-6">
+        {/* pb extra en móvil para no quedar bajo la barra fija inferior (2 filas) */}
+        <footer className="flex items-center justify-center gap-1.5 pb-36 pt-6 text-center text-xs text-slate-400 sm:pb-6">
           <IconLock className="h-3.5 w-3.5" /> Datos cifrados · Full Party
         </footer>
         <Toaster />
