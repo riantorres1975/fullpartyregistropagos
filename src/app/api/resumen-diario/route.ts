@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/guard";
-import { enviarRespaldoPorCorreo } from "@/lib/respaldo";
+import { enviarRespaldoPorCorreo, enviarRespaldoADrive } from "@/lib/respaldo";
 
 // Envía un resumen de los movimientos del día a UN número de WhatsApp, gratis,
 // usando CallMeBot (no requiere API de paga). Lo dispara el Cron de Vercel una
@@ -177,10 +177,11 @@ export async function GET(request: NextRequest) {
   const texto = await construirResumen(periodo);
   const r = await enviarWhatsapp(texto);
 
-  // El cron semanal aprovecha para mandar también el respaldo por correo
-  // (si Resend está configurado). Así un solo cron hace resumen + respaldo.
+  // El cron semanal aprovecha para mandar también el respaldo. Intenta por correo
+  // (Resend) y a Google Drive: usa lo que esté configurado, los dos si ambos lo
+  // están. Así un solo cron hace resumen + respaldo.
   if (esCron && periodo === "semana") {
-    await enviarRespaldoPorCorreo().catch(() => {});
+    await Promise.allSettled([enviarRespaldoPorCorreo(), enviarRespaldoADrive()]);
   }
 
   if (!r.ok) {

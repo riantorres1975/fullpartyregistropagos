@@ -67,3 +67,52 @@ export async function enviarRespaldoPorCorreo(): Promise<{ ok: boolean; detalle:
     return { ok: false, detalle: "No se pudo contactar a Resend." };
   }
 }
+
+// Respaldo a Google Drive usando un "Apps Script" publicado como app web (gratis,
+// sin Google Cloud). El archivo queda en TU propio Drive. Requiere dos variables:
+//   DRIVE_WEBHOOK_URL   -> la URL que te da Apps Script al publicar la app web.
+//   DRIVE_WEBHOOK_TOKEN -> un secreto que tú inventas y pones también en el script
+//                          (para que nadie más pueda subir archivos).
+export async function enviarRespaldoADrive(): Promise<{ ok: boolean; detalle: string }> {
+  const url = process.env.DRIVE_WEBHOOK_URL;
+  const token = process.env.DRIVE_WEBHOOK_TOKEN;
+  if (!url || !token) {
+    return { ok: false, detalle: "Falta configurar DRIVE_WEBHOOK_URL / DRIVE_WEBHOOK_TOKEN." };
+  }
+
+  const backup = await construirRespaldo();
+  const json = JSON.stringify(backup, null, 2);
+  const fecha = new Date().toISOString().slice(0, 10);
+
+  try {
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      // Apps Script hace un redirect 302 a googleusercontent en el POST; fetch lo
+      // sigue solo, por eso leemos la respuesta final del script.
+      body: JSON.stringify({
+        token,
+        filename: `backup-transferencias-${fecha}.json`,
+        content: json,
+      }),
+    });
+    const cuerpo = await res.text();
+    if (!res.ok) {
+      return { ok: false, detalle: `Drive respondió ${res.status}: ${cuerpo.slice(0, 200)}` };
+    }
+    // El script responde {ok:true} si guardó bien, o {ok:false,error:...} si el
+    // token no coincide.
+    let data: { ok?: boolean; error?: string } = {};
+    try {
+      data = JSON.parse(cuerpo);
+    } catch {
+      return { ok: false, detalle: `Respuesta inesperada de Drive: ${cuerpo.slice(0, 200)}` };
+    }
+    if (!data.ok) {
+      return { ok: false, detalle: data.error ?? "El script de Drive rechazó la subida." };
+    }
+    return { ok: true, detalle: "Respaldo subido a Google Drive." };
+  } catch {
+    return { ok: false, detalle: "No se pudo contactar al script de Drive." };
+  }
+}

@@ -13,6 +13,7 @@ import {
   IconWhatsApp,
   IconMail,
   IconFingerprint,
+  IconCloud,
 } from "@/components/icons";
 
 export default function AjustesPage() {
@@ -23,6 +24,7 @@ export default function AjustesPage() {
       </h1>
       <InstalarApp />
       <ResumenWhatsapp />
+      <RespaldoDrive />
       <RespaldoCorreo />
       <CambiarContrasena />
       <ConfigurarPin />
@@ -97,6 +99,40 @@ function ConfigurarHuella() {
           {procesando ? "Activando…" : "Activar huella"}
         </button>
       )}
+    </div>
+  );
+}
+
+// ─── Respaldo automático a Google Drive (Apps Script) ────────────────────────
+function RespaldoDrive() {
+  const [enviando, setEnviando] = useState(false);
+
+  async function probar() {
+    setEnviando(true);
+    try {
+      const res = await fetch("/api/respaldo-drive");
+      const d = await res.json().catch(() => ({}));
+      if (res.ok) toast("Respaldo subido a tu Google Drive.");
+      else toast(d.error ?? "No se pudo subir el respaldo", "error");
+    } finally {
+      setEnviando(false);
+    }
+  }
+
+  return (
+    <div className="card space-y-3">
+      <h2 className="flex items-center gap-2 font-semibold">
+        <IconCloud className="h-5 w-5 text-violet-500" /> Respaldo a Google Drive
+      </h2>
+      <p className="text-sm text-slate-500">
+        Cada domingo el respaldo completo se guarda solo en una carpeta de tu
+        Google Drive (gratis). Se configura una sola vez con un pequeño “script”
+        de Google. Pídeme los pasos exactos cuando quieras activarlo.
+      </p>
+      <button onClick={probar} className="btn-secondary" disabled={enviando}>
+        <IconCloud className="h-4 w-4" />
+        {enviando ? "Subiendo…" : "Subir un respaldo ahora"}
+      </button>
     </div>
   );
 }

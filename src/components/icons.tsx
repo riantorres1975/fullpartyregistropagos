@@ -29,6 +29,14 @@ export const IconCard = (p: Props) => (
   </Svg>
 );
 
+export const IconCloud = (p: Props) => (
+  <Svg {...p}>
+    <path d="M7 18a4 4 0 0 1-.5-7.97 5.5 5.5 0 0 1 10.6-1.03A3.75 3.75 0 0 1 17 18Z" />
+    <path d="M12 13v5" />
+    <path d="m9.5 15.5 2.5-2.5 2.5 2.5" />
+  </Svg>
+);
+
 export const IconHome = (p: Props) => (
   <Svg {...p}>
     <path d="M3 10.5 12 3l9 7.5" />
