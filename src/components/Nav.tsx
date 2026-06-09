@@ -53,7 +53,11 @@ export default function Nav({ nombre }: { nombre: string }) {
             </button>
           </div>
         </div>
-        <nav className="mt-2 flex gap-1">
+        {/* En móvil, el menú va FIJO abajo (más cómodo para el pulgar);
+            en escritorio queda aquí arriba dentro del encabezado. */}
+        <nav
+          className="fixed inset-x-0 bottom-0 z-40 flex gap-1 border-t border-white/15 bg-[linear-gradient(115deg,#3b1578_0%,#6d28d9_48%,#db2777_115%)] px-1.5 pt-1.5 pb-[max(0.375rem,env(safe-area-inset-bottom))] text-white shadow-[0_-4px_14px_rgba(0,0,0,0.2)] sm:static sm:mt-2 sm:border-0 sm:bg-none sm:px-0 sm:pb-0 sm:pt-0 sm:shadow-none"
+        >
           {links.map(({ href, label, Icon }) => {
             const activo =
               href === "/" ? pathname === "/" : pathname.startsWith(href);
@@ -61,7 +65,7 @@ export default function Nav({ nombre }: { nombre: string }) {
               <Link
                 key={href}
                 href={href}
-                className={`flex flex-1 flex-col items-center gap-0.5 rounded-lg px-1 py-1.5 text-center text-[11px] font-medium leading-tight transition-colors sm:flex-initial sm:flex-row sm:gap-1.5 sm:px-3 sm:py-2 sm:text-sm ${
+                className={`flex flex-1 flex-col items-center gap-0.5 rounded-lg px-0.5 py-1.5 text-center text-[10px] font-medium leading-tight transition-colors sm:flex-initial sm:flex-row sm:gap-1.5 sm:px-3 sm:py-2 sm:text-sm ${
                   activo ? "bg-white/25" : "hover:bg-white/15"
                 }`}
               >
