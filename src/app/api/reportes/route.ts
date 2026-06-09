@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/guard";
+import { descifrarCampo } from "@/lib/crypto";
 
 // GET /api/reportes -> TODAS las transferencias (con filtros opcionales)
 // para la vista de impresión. Liviano: no carga comprobantes.
@@ -25,7 +26,8 @@ export async function GET(request: NextRequest) {
   }
   if (q) {
     where.OR = [
-      { referencia: { contains: q, mode: "insensitive" } },
+      // La referencia va cifrada; se busca por los últimos 4 en claro.
+      { referenciaLast4: { contains: q, mode: "insensitive" } },
       { cliente: { nombre: { contains: q, mode: "insensitive" } } },
     ];
   }
@@ -77,7 +79,7 @@ export async function GET(request: NextRequest) {
       moneda: t.moneda,
       bancoOrigen: t.bancoOrigen,
       bancoDestino: t.bancoDestino,
-      referencia: t.referencia,
+      referencia: descifrarCampo(t.referencia),
       estado: t.estado,
     })),
   });

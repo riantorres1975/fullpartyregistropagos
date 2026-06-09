@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { encrypt, last4 } from "@/lib/crypto";
+import { encrypt, last4, cifrarCampo, descifrarCampo } from "@/lib/crypto";
 import { serializeCuenta } from "@/lib/serializers";
 import { requireSession } from "@/lib/guard";
 import { formatNombre } from "@/lib/format";
@@ -77,8 +77,8 @@ export async function GET(request: NextRequest) {
         id: c.id,
         nombre: c.nombre,
         alias: c.alias,
-        notas: c.notas,
-        whatsapp: c.whatsapp,
+        notas: descifrarCampo(c.notas),
+        whatsapp: descifrarCampo(c.whatsapp),
         meta: c.metaMonto,
         metaDesde: c.metaDesde,
         avance: { pendiente, reflejada },
@@ -107,8 +107,8 @@ export async function POST(request: NextRequest) {
     data: {
       nombre: formatNombre(nombre),
       alias: alias || null,
-      notas: notas || null,
-      whatsapp: limpiarWhatsapp(whatsapp),
+      notas: cifrarCampo(notas),
+      whatsapp: cifrarCampo(limpiarWhatsapp(whatsapp)),
       cuentas: cuentas
         ? {
             create: cuentas.map((c) => ({
@@ -133,8 +133,8 @@ export async function POST(request: NextRequest) {
       id: cliente.id,
       nombre: cliente.nombre,
       alias: cliente.alias,
-      notas: cliente.notas,
-      whatsapp: cliente.whatsapp,
+      notas: descifrarCampo(cliente.notas),
+      whatsapp: descifrarCampo(cliente.whatsapp),
       cuentas: cliente.cuentas.map(serializeCuenta),
     },
     { status: 201 },

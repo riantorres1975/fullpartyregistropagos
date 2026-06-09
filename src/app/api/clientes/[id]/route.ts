@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { serializeCuenta } from "@/lib/serializers";
 import { requireSession } from "@/lib/guard";
 import { formatNombre } from "@/lib/format";
+import { cifrarCampo, descifrarCampo } from "@/lib/crypto";
 
 const updateSchema = z.object({
   nombre: z.string().min(1).optional(),
@@ -32,8 +33,8 @@ export async function GET(_req: NextRequest, ctx: Ctx) {
     id: cliente.id,
     nombre: cliente.nombre,
     alias: cliente.alias,
-    notas: cliente.notas,
-    whatsapp: cliente.whatsapp,
+    notas: descifrarCampo(cliente.notas),
+    whatsapp: descifrarCampo(cliente.whatsapp),
     cuentas: cliente.cuentas.map(serializeCuenta),
   });
 }
@@ -50,12 +51,14 @@ export async function PUT(request: NextRequest, ctx: Ctx) {
       { status: 400 },
     );
   }
-  const { metaMonto, whatsapp, ...resto } = parsed.data;
+  const { metaMonto, whatsapp, notas, ...resto } = parsed.data;
   const data: Prisma.ClienteUpdateInput = { ...resto };
   if (typeof resto.nombre === "string") data.nombre = formatNombre(resto.nombre);
+  // notas y whatsapp se guardan cifrados.
+  if (notas !== undefined) data.notas = cifrarCampo(notas);
   if (whatsapp !== undefined) {
     const d = (whatsapp ?? "").replace(/\D/g, "");
-    data.whatsapp = d.length >= 8 ? d : null;
+    data.whatsapp = cifrarCampo(d.length >= 8 ? d : null);
   }
 
   // Manejo de la meta: al FIJARLA por primera vez se marca "metaDesde" = ahora,

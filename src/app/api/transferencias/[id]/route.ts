@@ -2,7 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/guard";
-import { cifrarComprobante, descifrarComprobante } from "@/lib/crypto";
+import {
+  cifrarComprobante,
+  descifrarComprobante,
+  cifrarCampo,
+  descifrarCampo,
+  last4,
+} from "@/lib/crypto";
 
 const schema = z.object({
   fecha: z.string().optional(),
@@ -29,9 +35,11 @@ export async function GET(_req: NextRequest, ctx: Ctx) {
   if (!t) {
     return NextResponse.json({ error: "No encontrada" }, { status: 404 });
   }
-  // El comprobante se guarda cifrado; se descifra solo aquí para mostrarlo.
+  // Los campos sensibles se guardan cifrados; se descifran solo aquí.
   return NextResponse.json({
     ...t,
+    referencia: descifrarCampo(t.referencia),
+    observaciones: descifrarCampo(t.observaciones),
     comprobante: t.comprobante ? descifrarComprobante(t.comprobante) : null,
   });
 }
@@ -59,9 +67,14 @@ export async function PUT(request: NextRequest, ctx: Ctx) {
       ...(d.moneda ? { moneda: d.moneda } : {}),
       ...(d.bancoOrigen !== undefined ? { bancoOrigen: d.bancoOrigen || null } : {}),
       ...(d.bancoDestino !== undefined ? { bancoDestino: d.bancoDestino || null } : {}),
-      ...(d.referencia !== undefined ? { referencia: d.referencia || null } : {}),
+      ...(d.referencia !== undefined
+        ? {
+            referencia: cifrarCampo(d.referencia),
+            referenciaLast4: d.referencia ? last4(d.referencia) : null,
+          }
+        : {}),
       ...(d.estado ? { estado: d.estado } : {}),
-      ...(d.observaciones !== undefined ? { observaciones: d.observaciones || null } : {}),
+      ...(d.observaciones !== undefined ? { observaciones: cifrarCampo(d.observaciones) } : {}),
       ...(d.comprobante !== undefined
         ? { comprobante: d.comprobante ? cifrarComprobante(d.comprobante) : null }
         : {}),

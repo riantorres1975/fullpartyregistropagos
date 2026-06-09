@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/guard";
+import { descifrarCampo } from "@/lib/crypto";
 
 // Papelera: lista, restaura y borra definitivamente transferencias y clientes
 // que fueron "eliminados" (soft delete: deletedAt != null).
@@ -45,7 +46,7 @@ export async function GET() {
       monto: t.monto,
       moneda: t.moneda,
       estado: t.estado,
-      referencia: t.referencia,
+      referencia: descifrarCampo(t.referencia),
       deletedAt: t.deletedAt,
       cliente: t.cliente?.nombre ?? null,
     })),

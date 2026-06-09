@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
-import { maskNumero, cifrarComprobante } from "@/lib/crypto";
+import { maskNumero, cifrarComprobante, cifrarCampo, descifrarCampo, last4 } from "@/lib/crypto";
 import { requireSession } from "@/lib/guard";
 
 const schema = z.object({
@@ -46,7 +46,8 @@ export async function GET(request: NextRequest) {
   }
   if (q) {
     where.OR = [
-      { referencia: { contains: q, mode: "insensitive" } },
+      // La referencia va cifrada; se busca por los últimos 4 en claro.
+      { referenciaLast4: { contains: q, mode: "insensitive" } },
       { cliente: { nombre: { contains: q, mode: "insensitive" } } },
       // Búsqueda por monto: si lo tecleado parece un número, lo igualamos.
       ...(Number.isFinite(Number(q.replace(/[,$\s]/g, "")))
@@ -100,10 +101,10 @@ export async function GET(request: NextRequest) {
       monto: t.monto,
       moneda: t.moneda,
       estado: t.estado,
-      referencia: t.referencia,
+      referencia: descifrarCampo(t.referencia),
       bancoOrigen: t.bancoOrigen,
       bancoDestino: t.bancoDestino,
-      observaciones: t.observaciones,
+      observaciones: descifrarCampo(t.observaciones),
       tieneComprobante: !!t.comprobante,
       cliente: t.cliente,
       clienteId: t.clienteId,
@@ -171,9 +172,10 @@ export async function POST(request: NextRequest) {
       moneda: d.moneda,
       bancoOrigen: d.bancoOrigen || null,
       bancoDestino: d.bancoDestino || null,
-      referencia: d.referencia || null,
+      referencia: cifrarCampo(d.referencia),
+      referenciaLast4: d.referencia ? last4(d.referencia) : null,
       estado: d.estado,
-      observaciones: d.observaciones || null,
+      observaciones: cifrarCampo(d.observaciones),
       comprobante: d.comprobante ? cifrarComprobante(d.comprobante) : null,
     },
   });

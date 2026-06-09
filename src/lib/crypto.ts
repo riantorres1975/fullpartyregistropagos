@@ -63,6 +63,28 @@ export function decrypt(payload: string): string {
 }
 
 /**
+ * Cifra un campo de texto sensible (referencia/clave de rastreo, observaciones,
+ * WhatsApp, notas). Devuelve null si no hay valor.
+ */
+export function cifrarCampo(texto: string | null | undefined): string | null {
+  if (texto == null || texto === "") return null;
+  return encrypt(texto);
+}
+
+/**
+ * Descifra un campo cifrado con cifrarCampo(). Compatibilidad: si el valor no
+ * tiene el formato cifrado (registros antiguos en claro), se devuelve tal cual.
+ */
+export function descifrarCampo(guardado: string | null | undefined): string | null {
+  if (guardado == null) return null;
+  try {
+    return decrypt(guardado);
+  } catch {
+    return guardado; // registro antiguo en claro
+  }
+}
+
+/**
  * Cifra la imagen del comprobante (un data URL "data:image/...;base64,..."),
  * igual que los números de cuenta. Así nunca se guarda en claro: ni en la base
  * de datos ni en los respaldos. Un comprobante trae la clave de rastreo, con la

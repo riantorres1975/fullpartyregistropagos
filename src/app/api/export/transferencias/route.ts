@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/guard";
+import { descifrarCampo } from "@/lib/crypto";
 
 function csvCell(value: unknown): string {
   const s = value === null || value === undefined ? "" : String(value);
@@ -56,9 +57,9 @@ export async function GET(request: NextRequest) {
       t.moneda,
       t.bancoOrigen ?? "",
       t.bancoDestino ?? "",
-      t.referencia ?? "",
+      descifrarCampo(t.referencia) ?? "",
       t.estado,
-      t.observaciones ?? "",
+      descifrarCampo(t.observaciones) ?? "",
     ]
       .map(csvCell)
       .join(","),
