@@ -27,12 +27,9 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  // La franja superior del navegador se funde con el fondo de la app (cremita
-  // en claro, casi negro en oscuro) para que no se sienta "encerrado".
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f4f1ec" },
-    { media: "(prefers-color-scheme: dark)", color: "#0e0c15" },
-  ],
+  // La franja del sistema (arriba) toma el morado del header para que se funda
+  // con él (estilo Spin), en modo claro y oscuro.
+  themeColor: "#3b1578",
   width: "device-width",
   initialScale: 1,
 };

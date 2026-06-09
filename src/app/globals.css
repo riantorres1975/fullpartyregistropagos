@@ -28,7 +28,7 @@
   .btn-primary,
   .btn-secondary,
   .btn-danger {
-    @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all duration-150 active:scale-[0.97];
+    @apply inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-semibold transition-all duration-150 active:scale-[0.97];
   }
   .btn:disabled,
   .btn-primary:disabled,
@@ -36,8 +36,9 @@
   .btn-danger:disabled {
     @apply cursor-not-allowed opacity-50;
   }
+  /* Botón principal: degradado violeta→rosa, estilo Spin. */
   .btn-primary {
-    @apply bg-violet-600 text-white shadow-sm shadow-violet-600/25 hover:bg-violet-700 hover:shadow-md hover:shadow-violet-600/30;
+    @apply bg-[linear-gradient(115deg,#6d28d9_0%,#db2777_115%)] text-white shadow-md shadow-violet-600/25 hover:shadow-lg hover:shadow-violet-600/30;
   }
   .btn-secondary {
     @apply bg-white text-slate-700 ring-1 ring-slate-200 hover:bg-slate-50 dark:bg-slate-700 dark:text-slate-100 dark:ring-white/10 dark:hover:bg-slate-600;
@@ -47,12 +48,13 @@
   }
   .input {
     /* text-base (16px) en móvil evita el zoom automático de iOS al enfocar */
-    @apply w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-base text-slate-800 outline-none transition-colors placeholder:text-slate-400 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 sm:text-sm dark:border-white/10 dark:bg-slate-900/60 dark:text-slate-100 dark:placeholder:text-slate-500;
+    @apply w-full rounded-2xl border border-slate-200 bg-white px-4 py-2.5 text-base text-slate-800 outline-none transition-colors placeholder:text-slate-400 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 sm:text-sm dark:border-white/10 dark:bg-slate-900/60 dark:text-slate-100 dark:placeholder:text-slate-500;
   }
   .label {
     @apply mb-1.5 block text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400;
   }
+  /* Tarjeta: blanca, muy redondeada y con sombra suave, estilo Spin. */
   .card {
-    @apply rounded-2xl bg-white p-6 shadow-[0_1px_2px_rgba(16,12,30,0.04),0_14px_30px_-18px_rgba(16,12,30,0.22)] ring-1 ring-slate-900/[0.05] dark:bg-slate-800/70 dark:ring-white/10;
+    @apply rounded-3xl bg-white p-5 shadow-[0_2px_8px_rgba(16,12,30,0.04),0_18px_40px_-24px_rgba(16,12,30,0.25)] ring-1 ring-slate-900/[0.04] sm:p-6 dark:bg-slate-800/70 dark:ring-white/10;
   }
 }
