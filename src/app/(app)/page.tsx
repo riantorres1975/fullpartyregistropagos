@@ -69,13 +69,20 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Tarjeta resumen tipo Spin: se recarga sobre el header morado. */}
-      <div className="-mt-8 rounded-3xl bg-white p-5 shadow-xl ring-1 ring-black/5 dark:bg-slate-800 dark:ring-white/10 sm:mt-0">
-        <div className="flex items-start justify-between gap-2">
+      <div className="relative -mt-8 rounded-3xl bg-white p-5 shadow-xl ring-1 ring-black/5 dark:bg-slate-800 dark:ring-white/10 sm:mt-0 sm:p-6">
+        <button
+          onClick={() => setOcultar((v) => !v)}
+          aria-label="Mostrar u ocultar montos"
+          className="absolute right-4 top-4 rounded-full p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
+        >
+          {ocultar ? <IconEyeOff className="h-5 w-5" /> : <IconEye className="h-5 w-5" />}
+        </button>
+        <div className="sm:flex sm:items-end sm:justify-between sm:gap-6">
           <div className="min-w-0">
             <p className="text-sm text-slate-500 dark:text-slate-400">
               Reflejado (MXN)
             </p>
-            <p className="font-display text-3xl font-extrabold">
+            <p className="font-display text-3xl font-extrabold sm:text-4xl">
               {ocultar ? "••••••" : formatMonto(mxn.reflejada, "MXN")}
             </p>
             <p className="mt-1 flex items-center gap-1 text-sm text-amber-600">
@@ -83,24 +90,13 @@ export default function DashboardPage() {
               {ocultar ? "••••" : formatMonto(mxn.pendiente, "MXN")}
             </p>
           </div>
-          <button
-            onClick={() => setOcultar((v) => !v)}
-            aria-label="Mostrar u ocultar montos"
-            className="rounded-full p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
+          <Link
+            href="/transferencias"
+            className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(115deg,#6d28d9_0%,#db2777_115%)] px-5 py-3 font-semibold text-white shadow-md shadow-violet-600/25 transition-transform active:scale-[0.99] sm:mt-0 sm:w-auto sm:shrink-0 sm:px-7"
           >
-            {ocultar ? (
-              <IconEyeOff className="h-5 w-5" />
-            ) : (
-              <IconEye className="h-5 w-5" />
-            )}
-          </button>
+            <IconPlus className="h-5 w-5" /> Nueva transferencia
+          </Link>
         </div>
-        <Link
-          href="/transferencias"
-          className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[linear-gradient(115deg,#6d28d9_0%,#db2777_115%)] px-4 py-3 font-semibold text-white shadow-md shadow-violet-600/25 transition-transform active:scale-[0.99]"
-        >
-          <IconPlus className="h-5 w-5" /> Nueva transferencia
-        </Link>
       </div>
 
       {/* Accesos rápidos (tiles circulares). */}
@@ -108,7 +104,7 @@ export default function DashboardPage() {
         <h2 className="mb-3 text-sm font-semibold text-slate-500 dark:text-slate-400">
           Accesos rápidos
         </h2>
-        <div className="grid grid-cols-4 gap-2">
+        <div className="grid grid-cols-4 gap-2 sm:flex sm:flex-wrap sm:gap-7">
           <AccionRapida href="/transferencias" label="Transferir" Icon={IconTransfer} />
           <AccionRapida href="/clientes" label="Clientes" Icon={IconUsers} />
           <AccionRapida href="/reportes" label="Reportes" Icon={IconChart} />
