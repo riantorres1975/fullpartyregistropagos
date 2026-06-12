@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
-import { requireSession } from "@/lib/guard";
-import { verifyPassword, hashPassword } from "@/lib/auth";
+import { requireSession, invalidarCacheSesion } from "@/lib/guard";
+import { verifyPassword, hashPassword, createSession } from "@/lib/auth";
 
 const schema = z.object({
   actual: z.string().min(1, "Escribe tu contraseña actual"),
@@ -32,9 +32,18 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  await prisma.user.update({
+  // Al cambiar la contraseña se incrementa tokenVersion: cualquier sesión
+  // abierta en otro dispositivo (o una cookie robada) queda revocada.
+  const actualizado = await prisma.user.update({
     where: { id: user.id },
-    data: { passwordHash: await hashPassword(nueva) },
+    data: { passwordHash: await hashPassword(nueva), tokenVersion: { increment: 1 } },
+  });
+  invalidarCacheSesion(user.id);
+  // Renueva la sesión de ESTE dispositivo para que el usuario siga dentro.
+  await createSession({
+    userId: actualizado.id,
+    email: actualizado.email,
+    tokenVersion: actualizado.tokenVersion,
   });
   await prisma.auditLog.create({
     data: { accion: "editar", entidad: "sesion", entidadId: user.id, detalle: "cambio_contrasena" },

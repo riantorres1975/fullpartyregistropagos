@@ -18,6 +18,8 @@ const securityHeaders = [
     key: "Permissions-Policy",
     value: "camera=(), microphone=(), geolocation=(), interest-cohort=()",
   },
+  // Aísla la ventana: otras pestañas/popups no pueden obtener referencia a esta.
+  { key: "Cross-Origin-Opener-Policy", value: "same-origin" },
   // CSP: solo recursos del propio origen. 'unsafe-inline' es necesario para
   // los estilos de Tailwind y para los scripts inline de hidratación que
   // inyecta el App Router de Next (sin ellos, la app no carga).

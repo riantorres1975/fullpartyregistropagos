@@ -6,16 +6,21 @@ import { maskNumero, cifrarComprobante, cifrarCampo, descifrarCampo, last4 } fro
 import { requireSession } from "@/lib/guard";
 
 const schema = z.object({
-  fecha: z.string().min(1, "La fecha es obligatoria"),
-  clienteId: z.string().optional().nullable(),
-  cuentaId: z.string().optional().nullable(),
-  monto: z.number().positive("El monto debe ser mayor a 0"),
-  moneda: z.string().default("MXN"),
-  bancoOrigen: z.string().optional().nullable(),
-  bancoDestino: z.string().optional().nullable(),
-  referencia: z.string().optional().nullable(),
+  fecha: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}/, "Fecha inválida"),
+  clienteId: z.string().max(50).optional().nullable(),
+  cuentaId: z.string().max(50).optional().nullable(),
+  monto: z
+    .number()
+    .positive("El monto debe ser mayor a 0")
+    .max(999_999_999, "Monto fuera de rango"),
+  moneda: z.string().max(10).default("MXN"),
+  bancoOrigen: z.string().max(100).optional().nullable(),
+  bancoDestino: z.string().max(100).optional().nullable(),
+  referencia: z.string().max(100, "Referencia demasiado larga").optional().nullable(),
   estado: z.enum(["pendiente", "reflejada"]).default("pendiente"),
-  observaciones: z.string().optional().nullable(),
+  observaciones: z.string().max(2000, "Observaciones demasiado largas").optional().nullable(),
   // Imagen del comprobante en base64 (WebP). Límite ~8 MB de texto base64
   // (~6 MB de imagen) para evitar payloads abusivos / engorde de BD.
   comprobante: z.string().max(8_000_000, "Comprobante demasiado grande").optional().nullable(),

@@ -17,6 +17,10 @@ model User {
   email        String   @unique
   name         String?
   passwordHash String
+  // Versión de sesión: las cookies firmadas con una versión vieja dejan de
+  // valer. Se incrementa al cambiar la contraseña o al "cerrar sesión en
+  // todos los dispositivos" (invalida tokens robados sin esperar a que caduquen).
+  tokenVersion Int      @default(0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }

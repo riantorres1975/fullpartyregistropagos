@@ -10,7 +10,9 @@ export async function GET() {
   const ahora = new Date();
   const inicio6Meses = new Date(ahora.getFullYear(), ahora.getMonth() - 5, 1);
 
-  const [porEstado, porMoneda, totalClientes, ultimas, ultimosMeses, porBancoRaw, porClienteRaw] =
+  const hace3Dias = new Date(Date.now() - 3 * 86_400_000);
+
+  const [porEstado, porMoneda, totalClientes, ultimas, ultimosMeses, porBancoRaw, porClienteRaw, atrasadas] =
     await Promise.all([
       prisma.transferencia.groupBy({ by: ["estado"], where: { deletedAt: null }, _count: true }),
       prisma.transferencia.groupBy({
@@ -42,6 +44,10 @@ export async function GET() {
         where: { deletedAt: null, moneda: "MXN", clienteId: { not: null } },
         _sum: { monto: true },
         _count: true,
+      }),
+      // Pendientes con 3+ días sin reflejarse (para la alerta del inicio).
+      prisma.transferencia.count({
+        where: { deletedAt: null, estado: "pendiente", fecha: { lte: hace3Dias } },
       }),
     ]);
 
@@ -124,6 +130,7 @@ export async function GET() {
   return NextResponse.json({
     pendientes,
     reflejadas,
+    atrasadas,
     totalTransferencias: pendientes + reflejadas,
     totalClientes,
     totalesPorMoneda,

@@ -14,6 +14,20 @@ const PUBLIC_PATHS = [
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  // Refuerzo anti-CSRF: las peticiones que modifican datos deben venir de la
+  // propia app. Si el navegador manda Origin y no coincide con el host, se
+  // rechaza. (La cookie SameSite=Lax ya protege; esto es una segunda capa.)
+  if (
+    pathname.startsWith("/api/") &&
+    !["GET", "HEAD", "OPTIONS"].includes(request.method)
+  ) {
+    const origin = request.headers.get("origin");
+    const host = request.headers.get("host");
+    if (origin && host && new URL(origin).host !== host) {
+      return NextResponse.json({ error: "Origen no permitido" }, { status: 403 });
+    }
+  }
+
   const esPublica = PUBLIC_PATHS.some(
     (p) => pathname === p || pathname.startsWith(p + "/"),
   );

@@ -24,6 +24,7 @@ type IconComp = (p: { className?: string }) => React.ReactElement;
 type Dashboard = {
   pendientes: number;
   reflejadas: number;
+  atrasadas: number;
   totalTransferencias: number;
   totalClientes: number;
   totalesPorMoneda: Record<string, { pendiente: number; reflejada: number }>;
@@ -98,6 +99,21 @@ export default function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      {/* Alerta: pendientes con varios días sin reflejarse. */}
+      {data.atrasadas > 0 && (
+        <Link
+          href="/transferencias"
+          className="flex items-center gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800 transition-colors hover:bg-amber-100 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300 dark:hover:bg-amber-500/15"
+        >
+          <IconClock className="h-5 w-5 shrink-0" />
+          <span>
+            <strong>{data.atrasadas}</strong>{" "}
+            {data.atrasadas === 1 ? "transferencia pendiente lleva" : "transferencias pendientes llevan"}{" "}
+            3 días o más sin reflejarse. Toca para revisarlas.
+          </span>
+        </Link>
+      )}
 
       {/* Accesos rápidos (tiles circulares). */}
       <div>

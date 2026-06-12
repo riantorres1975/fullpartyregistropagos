@@ -14,6 +14,11 @@ const schema = z.object({
 const MAX_INTENTOS = 8;
 const VENTANA_MIN = 15;
 
+// Hash bcrypt de relleno: cuando el correo NO existe igualmente se compara
+// contra esto, para que la respuesta tarde lo mismo que con un correo real
+// (si no, un atacante podría adivinar qué correos existen midiendo tiempos).
+const HASH_RELLENO = "$2b$12$vVGR16.pEkO8rIiXiS46Fuu1dJesKqPVAXmkDCc.17aAo9ddXuAy2";
+
 export async function POST(request: NextRequest) {
   const body = await request.json().catch(() => null);
   const parsed = schema.safeParse(body);
@@ -42,8 +47,10 @@ export async function POST(request: NextRequest) {
 
   const user = await prisma.user.findUnique({ where: { email } });
 
-  // Mensaje genérico para no revelar si el correo existe.
-  if (!user || !(await verifyPassword(password, user.passwordHash))) {
+  // Mensaje genérico para no revelar si el correo existe (y comparación de
+  // relleno para que tampoco lo revele el tiempo de respuesta).
+  const passwordOk = await verifyPassword(password, user?.passwordHash ?? HASH_RELLENO);
+  if (!user || !passwordOk) {
     // Registra el intento fallido para el conteo de fuerza bruta.
     await prisma.auditLog.create({
       data: { accion: "login_fallido", entidad: "sesion", detalle: email },
@@ -54,7 +61,11 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  await createSession({ userId: user.id, email: user.email });
+  await createSession({
+    userId: user.id,
+    email: user.email,
+    tokenVersion: user.tokenVersion,
+  });
   await prisma.auditLog.create({
     data: { accion: "login", entidad: "sesion", entidadId: user.id },
   });

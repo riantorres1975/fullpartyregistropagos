@@ -27,8 +27,43 @@ export default function AjustesPage() {
       <RespaldoDrive />
       <RespaldoCorreo />
       <CambiarContrasena />
+      <CerrarSesiones />
       <ConfigurarPin />
       <ConfigurarHuella />
+    </div>
+  );
+}
+
+// ─── Cerrar sesión en otros dispositivos ─────────────────────────────────────
+// Útil si se perdió un teléfono con la sesión abierta: revoca todas las
+// sesiones (la de este dispositivo se renueva sola y sigues dentro).
+function CerrarSesiones() {
+  const [procesando, setProcesando] = useState(false);
+
+  async function cerrar() {
+    if (!confirm("¿Cerrar la sesión en todos los demás dispositivos?")) return;
+    setProcesando(true);
+    const res = await fetch("/api/auth/cerrar-sesiones", { method: "POST" });
+    setProcesando(false);
+    if (res.ok) {
+      toast("Listo: las sesiones en otros dispositivos quedaron cerradas");
+    } else {
+      toast("No se pudo completar; intenta de nuevo", "error");
+    }
+  }
+
+  return (
+    <div className="card space-y-3">
+      <h2 className="flex items-center gap-2 font-semibold">
+        <IconLock className="h-5 w-5 text-violet-500" /> Cerrar sesión en otros dispositivos
+      </h2>
+      <p className="text-sm text-slate-500 dark:text-slate-400">
+        Si perdiste un teléfono o entraste desde una computadora ajena, esto
+        cierra la sesión en todos lados menos aquí. Aquí sigues dentro.
+      </p>
+      <button onClick={cerrar} className="btn-primary" disabled={procesando}>
+        {procesando ? "Cerrando…" : "Cerrar otras sesiones"}
+      </button>
     </div>
   );
 }

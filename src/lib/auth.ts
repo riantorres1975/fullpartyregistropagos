@@ -2,12 +2,18 @@ import bcrypt from "bcryptjs";
 import { SignJWT, jwtVerify } from "jose";
 import { cookies } from "next/headers";
 
-const COOKIE_NAME = "sesion";
+// En producción el prefijo __Host- hace que el navegador exija Secure + path=/
+// y rechace que un subdominio la sobrescriba. En desarrollo (http) no se puede
+// usar porque el prefijo obliga a HTTPS.
+const COOKIE_NAME =
+  process.env.NODE_ENV === "production" ? "__Host-sesion" : "sesion";
 const MAX_AGE = 60 * 60 * 8; // 8 horas
 
 export type SessionPayload = {
   userId: string;
   email: string;
+  // Debe coincidir con User.tokenVersion; si no, la sesión ya fue revocada.
+  tokenVersion: number;
 };
 
 function getSecret(): Uint8Array {
@@ -45,7 +51,12 @@ export async function verifySession(
   if (!token) return null;
   try {
     const { payload } = await jwtVerify(token, getSecret());
-    return { userId: payload.userId as string, email: payload.email as string };
+    return {
+      userId: payload.userId as string,
+      email: payload.email as string,
+      // Tokens emitidos antes de existir tokenVersion cuentan como versión 0.
+      tokenVersion: typeof payload.tokenVersion === "number" ? payload.tokenVersion : 0,
+    };
   } catch {
     return null;
   }
