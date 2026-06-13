@@ -14,7 +14,12 @@ const schema = z.object({
   fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}/, "Fecha inválida").optional(),
   clienteId: z.string().max(50).optional().nullable(),
   cuentaId: z.string().max(50).optional().nullable(),
-  monto: z.number().positive().max(999_999_999, "Monto fuera de rango").optional(),
+  monto: z
+    .number()
+    .positive()
+    .max(999_999_999, "Monto fuera de rango")
+    .transform((v) => Math.round(v * 100) / 100)
+    .optional(),
   moneda: z.string().max(10).optional(),
   bancoOrigen: z.string().max(100).optional().nullable(),
   bancoDestino: z.string().max(100).optional().nullable(),

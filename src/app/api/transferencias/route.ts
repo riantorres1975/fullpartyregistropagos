@@ -14,7 +14,9 @@ const schema = z.object({
   monto: z
     .number()
     .positive("El monto debe ser mayor a 0")
-    .max(999_999_999, "Monto fuera de rango"),
+    .max(999_999_999, "Monto fuera de rango")
+    // Redondeo a centavos: evita que entre "basura" decimal del flotante.
+    .transform((v) => Math.round(v * 100) / 100),
   moneda: z.string().max(10).default("MXN"),
   bancoOrigen: z.string().max(100).optional().nullable(),
   bancoDestino: z.string().max(100).optional().nullable(),

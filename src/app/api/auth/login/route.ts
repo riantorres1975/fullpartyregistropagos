@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { verifyPassword, createSession } from "@/lib/auth";
+import { enviarWhatsapp } from "@/lib/whatsapp";
 
 const schema = z.object({
   email: z.string().email("Correo inválido"),
@@ -55,6 +56,14 @@ export async function POST(request: NextRequest) {
     await prisma.auditLog.create({
       data: { accion: "login_fallido", entidad: "sesion", detalle: email },
     });
+    // Alerta de seguridad: al llegar EXACTAMENTE a 3 fallidos en la ventana se
+    // avisa por WhatsApp (solo una vez por ventana, para no hacer spam). Se
+    // espera el envío porque en serverless el proceso se congela al responder.
+    if (fallidosRecientes + 1 === 3) {
+      await enviarWhatsapp(
+        `🚨 *Alerta de seguridad*\n\nHubo 3 intentos fallidos de entrar a Mis Transferencias en los últimos ${VENTANA_MIN} minutos.\n\nSi no fuiste tú, entra y usa "Cerrar sesión en otros dispositivos" en Ajustes, y considera cambiar tu contraseña.`,
+      ).catch(() => {});
+    }
     return NextResponse.json(
       { error: "Correo o contraseña incorrectos" },
       { status: 401 },

@@ -45,7 +45,9 @@ export default function PapeleraPage() {
       (key) => typeof key === "string" && key.startsWith("/api/transferencias"),
     );
     globalMutate("/api/clientes");
-    globalMutate("/api/dashboard");
+    globalMutate(
+      (key) => typeof key === "string" && key.startsWith("/api/dashboard"),
+    );
   }
 
   async function restaurar(tipo: "transferencia" | "cliente", id: string) {

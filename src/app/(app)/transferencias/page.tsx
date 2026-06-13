@@ -22,6 +22,7 @@ import {
   IconFolder,
   IconCopy,
   IconImage,
+  IconTransfer,
 } from "@/components/icons";
 
 type CuentaOpt = {
@@ -58,6 +59,28 @@ type Resumen = Record<
   string,
   { pendiente: number; reflejada: number; total: number }
 >;
+
+// Pantalla vacía amigable: distingue "no hay nada aún" de "los filtros no
+// encontraron nada".
+function ListaVacia({ conFiltros }: { conFiltros: boolean }) {
+  return (
+    <div className="flex flex-col items-center gap-2 py-10 text-center">
+      <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-500 dark:bg-violet-500/15 dark:text-violet-300">
+        <IconTransfer className="h-6 w-6" />
+      </span>
+      <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+        {conFiltros
+          ? "No hay transferencias con estos filtros."
+          : "Aún no registras transferencias."}
+      </p>
+      <p className="text-xs text-slate-400">
+        {conFiltros
+          ? "Prueba con otro rango de fechas o quita algún filtro."
+          : "Usa el formulario de arriba para registrar la primera."}
+      </p>
+    </div>
+  );
+}
 
 function EstadoIcono({ estado }: { estado: string }) {
   return estado === "reflejada" ? (
@@ -131,12 +154,18 @@ export default function TransferenciasPage() {
   );
 
   // Si llegamos desde "Movimientos" de un cliente (/transferencias?cliente=ID),
-  // arrancamos con ese filtro puesto. Solo al cargar la página.
+  // arrancamos con ese filtro puesto. Con ?nueva=1 (atajo del ícono de la app)
+  // se asegura el formulario abierto. Solo al cargar la página.
   useEffect(() => {
-    const cid = new URLSearchParams(window.location.search).get("cliente");
+    const sp = new URLSearchParams(window.location.search);
+    const cid = sp.get("cliente");
     if (cid) {
       setFiltros((f) => ({ ...f, clienteId: cid }));
       setMostrarForm(false);
+    }
+    if (sp.get("nueva")) {
+      setMostrarForm(true);
+      formRef.current?.scrollIntoView({ block: "start" });
     }
   }, []);
 
@@ -201,7 +230,9 @@ export default function TransferenciasPage() {
   // Refresca la lista actual y marca el dashboard para revalidar.
   const cargar = async () => {
     await mutateList();
-    globalMutate("/api/dashboard");
+    globalMutate(
+      (key) => typeof key === "string" && key.startsWith("/api/dashboard"),
+    );
   };
 
   const cuentasDelCliente = (clienteId: string): CuentaOpt[] =>
@@ -626,6 +657,55 @@ export default function TransferenciasPage() {
             setFiltros({ ...filtros, hasta: e.target.value });
           }}
         />
+
+        {/* Filtros rápidos de fecha: ponen desde/hasta de un toque. */}
+        <div className="flex flex-wrap items-center gap-1.5 sm:col-span-2 lg:col-span-5">
+          {(
+            [
+              ["Hoy", 0],
+              ["7 días", 6],
+              ["Este mes", -1],
+              ["Todo", -2],
+            ] as const
+          ).map(([etiqueta, dias]) => {
+            const rango = (): { desde: string; hasta: string } => {
+              const aISO = (d: Date) => {
+                const mm = String(d.getMonth() + 1).padStart(2, "0");
+                const dd = String(d.getDate()).padStart(2, "0");
+                return `${d.getFullYear()}-${mm}-${dd}`;
+              };
+              const ahora = new Date();
+              if (dias === -2) return { desde: "", hasta: "" };
+              if (dias === -1) {
+                return {
+                  desde: aISO(new Date(ahora.getFullYear(), ahora.getMonth(), 1)),
+                  hasta: aISO(ahora),
+                };
+              }
+              const inicio = new Date(ahora.getTime() - dias * 86_400_000);
+              return { desde: aISO(inicio), hasta: aISO(ahora) };
+            };
+            const r = rango();
+            const activo = filtros.desde === r.desde && filtros.hasta === r.hasta;
+            return (
+              <button
+                key={etiqueta}
+                type="button"
+                onClick={() => {
+                  setPage(1);
+                  setFiltros({ ...filtros, ...r });
+                }}
+                className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                  activo
+                    ? "bg-violet-600 text-white"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600"
+                }`}
+              >
+                {etiqueta}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Listado */}
@@ -635,7 +715,11 @@ export default function TransferenciasPage() {
         {/* Vista de tarjetas (móvil) */}
         <div className="space-y-3 sm:hidden">
           {items.length === 0 ? (
-            <p className="py-8 text-center text-slate-400">No hay transferencias.</p>
+            <ListaVacia
+              conFiltros={
+                !!(qDebounced || filtros.estado || filtros.clienteId || filtros.desde || filtros.hasta)
+              }
+            />
           ) : (
             items.map((t) => (
               <div
@@ -747,8 +831,12 @@ export default function TransferenciasPage() {
           <tbody>
             {items.length === 0 ? (
               <tr>
-                <td colSpan={7} className="py-8 text-center text-slate-400">
-                  No hay transferencias.
+                <td colSpan={7}>
+                  <ListaVacia
+                    conFiltros={
+                      !!(qDebounced || filtros.estado || filtros.clienteId || filtros.desde || filtros.hasta)
+                    }
+                  />
                 </td>
               </tr>
             ) : (

@@ -19,5 +19,18 @@ export default function manifest(): MetadataRoute.Manifest {
       { src: "/icons/512", sizes: "512x512", type: "image/png", purpose: "any" },
       { src: "/icons/512", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
+    // Atajos al mantener presionado el ícono de la app instalada.
+    shortcuts: [
+      {
+        name: "Nueva transferencia",
+        url: "/transferencias?nueva=1",
+        icons: [{ src: "/icons/192", sizes: "192x192", type: "image/png" }],
+      },
+      {
+        name: "Clientes",
+        url: "/clientes",
+        icons: [{ src: "/icons/192", sizes: "192x192", type: "image/png" }],
+      },
+    ],
   };
 }

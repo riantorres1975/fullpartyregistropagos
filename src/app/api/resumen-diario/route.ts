@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/guard";
 import { enviarRespaldoPorCorreo, enviarRespaldoADrive } from "@/lib/respaldo";
+import { enviarWhatsapp } from "@/lib/whatsapp";
 
 // Envía un resumen de los movimientos del día a UN número de WhatsApp, gratis,
 // usando CallMeBot (no requiere API de paga). Lo dispara el Cron de Vercel una
@@ -125,25 +126,6 @@ async function construirAtrasadas(): Promise<string | null> {
     );
   }
   return lineas.join("\n");
-}
-
-async function enviarWhatsapp(texto: string): Promise<{ ok: boolean; detalle: string }> {
-  const phone = process.env.CALLMEBOT_PHONE;
-  const apikey = process.env.CALLMEBOT_APIKEY;
-  if (!phone || !apikey) {
-    return { ok: false, detalle: "Falta configurar CALLMEBOT_PHONE / CALLMEBOT_APIKEY." };
-  }
-  const url =
-    `https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(phone)}` +
-    `&text=${encodeURIComponent(texto)}&apikey=${encodeURIComponent(apikey)}`;
-  try {
-    const res = await fetch(url, { method: "GET" });
-    const cuerpo = await res.text();
-    if (!res.ok) return { ok: false, detalle: `CallMeBot respondió ${res.status}: ${cuerpo.slice(0, 200)}` };
-    return { ok: true, detalle: "Enviado" };
-  } catch {
-    return { ok: false, detalle: "No se pudo contactar a CallMeBot." };
-  }
 }
 
 export async function GET(request: NextRequest) {

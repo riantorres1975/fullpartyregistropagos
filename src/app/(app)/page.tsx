@@ -31,6 +31,7 @@ type Dashboard = {
   porMes: { label: string; pendiente: number; reflejada: number; montoMXN: number }[];
   porBanco: { banco: string; total: number; cuenta: number }[];
   porCliente: { cliente: string; total: number; cuenta: number }[];
+  metas: { cliente: string; meta: number; pendiente: number; reflejada: number }[];
   ultimas: {
     id: string;
     fecha: string;
@@ -42,7 +43,8 @@ type Dashboard = {
 };
 
 export default function DashboardPage() {
-  const { data, mutate } = useSWR<Dashboard>("/api/dashboard");
+  const [meses, setMeses] = useState<6 | 12>(6);
+  const { data, mutate } = useSWR<Dashboard>(`/api/dashboard?meses=${meses}`);
   const { mutate: globalMutate } = useSWRConfig();
   const [ocultar, setOcultar] = useState(false);
 
@@ -183,8 +185,57 @@ export default function DashboardPage() {
         )}
       </div>
 
+      {/* Metas de clientes (si hay alguna fijada). */}
+      {data.metas.length > 0 && (
+        <div className="card">
+          <h2 className="mb-3 font-semibold">Metas de clientes</h2>
+          <div className="space-y-3">
+            {data.metas.map((m) => {
+              const logrado = m.pendiente + m.reflejada;
+              const pct = m.meta > 0 ? Math.min(100, (logrado / m.meta) * 100) : 0;
+              const pctRef = m.meta > 0 ? Math.min(100, (m.reflejada / m.meta) * 100) : 0;
+              return (
+                <div key={m.cliente}>
+                  <div className="mb-0.5 flex items-center justify-between gap-2 text-sm">
+                    <span className="min-w-0 truncate font-medium">{m.cliente}</span>
+                    <span className="shrink-0 text-xs text-slate-500 dark:text-slate-400">
+                      {ocultar
+                        ? "•••• / ••••"
+                        : `${formatMonto(logrado, "MXN")} de ${formatMonto(m.meta, "MXN")}`}{" "}
+                      ({Math.round(pct)}%)
+                    </span>
+                  </div>
+                  <div className="relative h-2.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-700">
+                    {/* ámbar = pendiente+reflejada; verde encima = solo reflejada */}
+                    <div className="absolute h-full rounded-full bg-amber-400" style={{ width: `${pct}%` }} />
+                    <div className="absolute h-full rounded-full bg-emerald-500" style={{ width: `${pctRef}%` }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
       <div className="card">
-        <h2 className="mb-4 font-semibold">Transferencias por mes</h2>
+        <div className="mb-4 flex items-center justify-between gap-2">
+          <h2 className="font-semibold">Transferencias por mes</h2>
+          <div className="flex rounded-full bg-slate-100 p-0.5 text-xs font-medium dark:bg-slate-700">
+            {([6, 12] as const).map((n) => (
+              <button
+                key={n}
+                onClick={() => setMeses(n)}
+                className={`rounded-full px-3 py-1 transition-colors ${
+                  meses === n
+                    ? "bg-white text-violet-700 shadow-sm dark:bg-slate-800 dark:text-violet-300"
+                    : "text-slate-500 dark:text-slate-400"
+                }`}
+              >
+                {n} meses
+              </button>
+            ))}
+          </div>
+        </div>
         <GraficaMeses datos={data.porMes} />
       </div>
 
@@ -376,7 +427,7 @@ function GraficaMeses({
   if (sinDatos) {
     return (
       <p className="text-sm text-slate-400">
-        Aún no hay transferencias en los últimos 6 meses.
+        Aún no hay transferencias en este periodo.
       </p>
     );
   }

@@ -58,3 +58,23 @@
     @apply rounded-3xl bg-white p-5 shadow-[0_2px_8px_rgba(16,12,30,0.04),0_18px_40px_-24px_rgba(16,12,30,0.25)] ring-1 ring-slate-900/[0.04] sm:p-6 dark:bg-slate-800/70 dark:ring-white/10;
   }
 }
+
+/* Entrada suave del contenido al cambiar de pantalla (sutil, 0.18s). */
+@keyframes pagina-entra {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.pagina-entra {
+  animation: pagina-entra 0.18s ease-out;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pagina-entra {
+    animation: none;
+  }
+}

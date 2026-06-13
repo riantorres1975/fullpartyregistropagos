@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "@/lib/toast";
 import { hashPin, PIN_HASH_KEY, PIN_OK_KEY } from "@/lib/pin";
 import { tieneBio, bioDisponible, registrarBio, quitarBio } from "@/lib/bio";
+import { descifrarTexto } from "@/lib/cifradoCliente";
 import {
   IconLock,
   IconCheck,
@@ -14,6 +15,8 @@ import {
   IconMail,
   IconFingerprint,
   IconCloud,
+  IconClock,
+  IconRestore,
 } from "@/components/icons";
 
 export default function AjustesPage() {
@@ -26,10 +29,257 @@ export default function AjustesPage() {
       <ResumenWhatsapp />
       <RespaldoDrive />
       <RespaldoCorreo />
+      <RestaurarRespaldo />
       <CambiarContrasena />
       <CerrarSesiones />
       <ConfigurarPin />
       <ConfigurarHuella />
+      <ActividadReciente />
+    </div>
+  );
+}
+
+// ─── Restaurar respaldo ──────────────────────────────────────────────────────
+// Lee un archivo de respaldo (el JSON de la descarga/correo/Drive, o el cifrado
+// con contraseña de Reportes) y lo restaura por lotes (Vercel limita el tamaño
+// de cada petición). Es un upsert: actualiza lo existente, crea lo faltante.
+function RestaurarRespaldo() {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [procesando, setProcesando] = useState(false);
+  const [progreso, setProgreso] = useState("");
+
+  type Backup = {
+    clientes?: unknown[];
+    cuentas?: unknown[];
+    transferencias?: unknown[];
+  };
+
+  async function enviarLote(lote: Backup): Promise<{ ok: boolean; error?: string }> {
+    const res = await fetch("/api/restaurar", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(lote),
+    });
+    if (!res.ok) {
+      const d = await res.json().catch(() => ({}));
+      return { ok: false, error: d.error ?? `Error ${res.status}` };
+    }
+    return { ok: true };
+  }
+
+  // Parte una lista en lotes de ~3 MB (las transferencias con comprobante
+  // pueden pesar mucho cada una).
+  function lotesPorTamano(items: unknown[], maxBytes = 3_000_000): unknown[][] {
+    const lotes: unknown[][] = [];
+    let actual: unknown[] = [];
+    let bytes = 0;
+    for (const item of items) {
+      const peso = JSON.stringify(item).length;
+      if (actual.length > 0 && bytes + peso > maxBytes) {
+        lotes.push(actual);
+        actual = [];
+        bytes = 0;
+      }
+      actual.push(item);
+      bytes += peso;
+    }
+    if (actual.length > 0) lotes.push(actual);
+    return lotes;
+  }
+
+  async function onArchivo(e: React.ChangeEvent<HTMLInputElement>) {
+    const archivo = e.target.files?.[0];
+    e.target.value = ""; // permite volver a elegir el mismo archivo
+    if (!archivo) return;
+
+    setProcesando(true);
+    setProgreso("Leyendo archivo…");
+    try {
+      let texto = await archivo.text();
+
+      // ¿Es el respaldo cifrado con contraseña (de Reportes)? Pide la contraseña.
+      try {
+        const obj = JSON.parse(texto);
+        if (obj && obj.salt && obj.iv && obj.data) {
+          const pass = prompt("Este respaldo está protegido. Escribe su contraseña:");
+          if (!pass) {
+            setProcesando(false);
+            setProgreso("");
+            return;
+          }
+          setProgreso("Descifrando…");
+          texto = await descifrarTexto(texto, pass);
+        }
+      } catch {
+        // no era JSON: dejamos que truene abajo con mensaje claro
+      }
+
+      let backup: Backup;
+      try {
+        backup = JSON.parse(texto);
+      } catch {
+        throw new Error("El archivo no es un respaldo válido.");
+      }
+      const clientes = Array.isArray(backup.clientes) ? backup.clientes : [];
+      const cuentas = Array.isArray(backup.cuentas) ? backup.cuentas : [];
+      const transferencias = Array.isArray(backup.transferencias) ? backup.transferencias : [];
+      if (clientes.length + cuentas.length + transferencias.length === 0) {
+        throw new Error("El archivo no contiene datos para restaurar.");
+      }
+
+      const ok = confirm(
+        `El respaldo trae:\n· ${clientes.length} clientes\n· ${cuentas.length} cuentas\n· ${transferencias.length} transferencias\n\nSe actualizará lo existente y se creará lo que falte (no se borra nada). ¿Restaurar?`,
+      );
+      if (!ok) {
+        setProcesando(false);
+        setProgreso("");
+        return;
+      }
+
+      // Primero clientes y cuentas (las transferencias dependen de ellos).
+      setProgreso("Restaurando clientes y cuentas…");
+      const r1 = await enviarLote({ clientes, cuentas });
+      if (!r1.ok) throw new Error(r1.error);
+
+      const lotes = lotesPorTamano(transferencias);
+      for (let i = 0; i < lotes.length; i++) {
+        setProgreso(`Restaurando transferencias… (${i + 1} de ${lotes.length})`);
+        const r = await enviarLote({ transferencias: lotes[i] });
+        if (!r.ok) throw new Error(r.error);
+      }
+
+      setProgreso("");
+      toast("Respaldo restaurado correctamente");
+    } catch (err) {
+      setProgreso("");
+      toast(err instanceof Error ? err.message : "No se pudo restaurar", "error");
+    } finally {
+      setProcesando(false);
+    }
+  }
+
+  return (
+    <div className="card space-y-3">
+      <h2 className="flex items-center gap-2 font-semibold">
+        <IconRestore className="h-5 w-5 text-violet-500" /> Restaurar respaldo
+      </h2>
+      <p className="text-sm text-slate-500 dark:text-slate-400">
+        Sube un archivo de respaldo (el JSON descargado, el del correo o el de
+        Google Drive; también el cifrado con contraseña). Lo existente se
+        actualiza y lo faltante se crea; nada se borra. Solo funciona con
+        respaldos de esta misma app.
+      </p>
+      <input
+        ref={inputRef}
+        type="file"
+        accept=".json,application/json"
+        className="hidden"
+        onChange={onArchivo}
+      />
+      <button
+        onClick={() => inputRef.current?.click()}
+        className="btn-primary"
+        disabled={procesando}
+      >
+        {procesando ? progreso || "Restaurando…" : "Elegir archivo de respaldo"}
+      </button>
+    </div>
+  );
+}
+
+// ─── Actividad reciente (registro de auditoría) ──────────────────────────────
+function ActividadReciente() {
+  const [abierto, setAbierto] = useState(false);
+  const [eventos, setEventos] = useState<
+    { id: string; accion: string; entidad: string; detalle: string | null; createdAt: string }[] | null
+  >(null);
+
+  async function abrir() {
+    setAbierto(true);
+    const res = await fetch("/api/actividad");
+    if (res.ok) {
+      const d = await res.json();
+      setEventos(d.eventos);
+    } else {
+      toast("No se pudo cargar la actividad", "error");
+      setAbierto(false);
+    }
+  }
+
+  function describir(e: { accion: string; entidad: string; detalle: string | null }): string {
+    const que: Record<string, string> = {
+      transferencia: "una transferencia",
+      cliente: "un cliente",
+      cuenta: "una cuenta",
+      sesion: "la sesión",
+      respaldo: "un respaldo",
+    };
+    const cosa = que[e.entidad] ?? e.entidad;
+    switch (e.accion) {
+      case "login":
+        return "Inicio de sesión correcto";
+      case "login_fallido":
+        return `Intento de entrar FALLIDO${e.detalle ? ` (correo: ${e.detalle})` : ""}`;
+      case "crear":
+        return `Se registró ${cosa}${e.detalle ? ` · ${e.detalle}` : ""}`;
+      case "editar":
+        if (e.detalle === "cambio_contrasena") return "Se cambió la contraseña";
+        if (e.detalle === "cerrar_sesiones") return "Se cerró la sesión en otros dispositivos";
+        return `Se editó ${cosa}`;
+      case "eliminar":
+        return `Se mandó a la papelera ${cosa}`;
+      case "restaurar":
+        return `Se restauró ${cosa}${e.detalle ? ` (${e.detalle})` : ""}`;
+      default:
+        return `${e.accion} · ${cosa}`;
+    }
+  }
+
+  const fmtFechaHora = (iso: string) =>
+    new Intl.DateTimeFormat("es-MX", {
+      day: "2-digit",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+    }).format(new Date(iso));
+
+  return (
+    <div className="card space-y-3">
+      <h2 className="flex items-center gap-2 font-semibold">
+        <IconClock className="h-5 w-5 text-violet-500" /> Actividad reciente
+      </h2>
+      <p className="text-sm text-slate-500 dark:text-slate-400">
+        Todo lo que pasa en la app queda registrado: entradas, cambios, borrados
+        e intentos fallidos de inicio de sesión.
+      </p>
+      {!abierto ? (
+        <button onClick={abrir} className="btn-primary">
+          Ver actividad
+        </button>
+      ) : eventos === null ? (
+        <p className="text-sm text-slate-400">Cargando…</p>
+      ) : eventos.length === 0 ? (
+        <p className="text-sm text-slate-400">Sin actividad registrada.</p>
+      ) : (
+        <ul className="max-h-80 divide-y divide-slate-100 overflow-y-auto text-sm dark:divide-slate-700">
+          {eventos.map((e) => (
+            <li key={e.id} className="flex items-start justify-between gap-3 py-2">
+              <span
+                className={
+                  e.accion === "login_fallido"
+                    ? "font-medium text-red-600 dark:text-red-400"
+                    : ""
+                }
+              >
+                {describir(e)}
+              </span>
+              <span className="shrink-0 text-xs text-slate-400">
+                {fmtFechaHora(e.createdAt)}
+              </span>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }

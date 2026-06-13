@@ -1,14 +1,15 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireSession } from "@/lib/guard";
 
-// GET /api/dashboard -> totales para la pantalla de inicio
-export async function GET() {
+// GET /api/dashboard?meses=6|12 -> totales para la pantalla de inicio
+export async function GET(request: NextRequest) {
   const auth = await requireSession();
   if ("error" in auth) return auth.error;
-  // Inicio del mes de hace 5 meses (para 6 meses incluyendo el actual)
+  // La gráfica puede mostrar 6 o 12 meses (incluyendo el actual).
+  const meses = request.nextUrl.searchParams.get("meses") === "12" ? 12 : 6;
   const ahora = new Date();
-  const inicio6Meses = new Date(ahora.getFullYear(), ahora.getMonth() - 5, 1);
+  const inicio6Meses = new Date(ahora.getFullYear(), ahora.getMonth() - (meses - 1), 1);
 
   const hace3Dias = new Date(Date.now() - 3 * 86_400_000);
 
@@ -74,7 +75,7 @@ export async function GET() {
     reflejada: number;
     montoMXN: number;
   }[] = [];
-  for (let i = 5; i >= 0; i--) {
+  for (let i = meses - 1; i >= 0; i--) {
     const d = new Date(ahora.getFullYear(), ahora.getMonth() - i, 1);
     buckets.push({
       clave: `${d.getFullYear()}-${d.getMonth()}`,
@@ -127,6 +128,37 @@ export async function GET() {
     cuenta: c.n,
   }));
 
+  // Metas de clientes (mismas reglas que /api/clientes: solo cuenta lo
+  // registrado desde que se fijó la meta, en MXN).
+  const conMeta = await prisma.cliente.findMany({
+    where: { deletedAt: null, metaMonto: { not: null } },
+    select: { id: true, nombre: true, metaMonto: true, metaDesde: true },
+    orderBy: { nombre: "asc" },
+  });
+  let metas: { cliente: string; meta: number; pendiente: number; reflejada: number }[] = [];
+  if (conMeta.length > 0) {
+    const txsMeta = await prisma.transferencia.findMany({
+      where: {
+        deletedAt: null,
+        moneda: "MXN",
+        clienteId: { in: conMeta.map((c) => c.id) },
+      },
+      select: { clienteId: true, monto: true, estado: true, createdAt: true },
+    });
+    metas = conMeta.map((c) => {
+      let pendiente = 0;
+      let reflejada = 0;
+      if (c.metaDesde) {
+        for (const t of txsMeta) {
+          if (t.clienteId !== c.id || t.createdAt < c.metaDesde) continue;
+          if (t.estado === "reflejada") reflejada += t.monto;
+          else pendiente += t.monto;
+        }
+      }
+      return { cliente: c.nombre, meta: c.metaMonto ?? 0, pendiente, reflejada };
+    });
+  }
+
   return NextResponse.json({
     pendientes,
     reflejadas,
@@ -137,6 +169,7 @@ export async function GET() {
     porMes,
     porBanco,
     porCliente,
+    metas,
     ultimas: ultimas.map((t) => ({
       id: t.id,
       fecha: t.fecha,

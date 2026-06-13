@@ -198,11 +198,21 @@ export default function ClientesPage() {
       </div>
 
       {clientes.length === 0 ? (
-        <p className="rounded-xl border border-dashed border-slate-300 px-4 py-8 text-center text-sm text-slate-400 dark:border-slate-700">
-          {buscando
-            ? `No se encontró ningún cliente con “${qDebounced}”.`
-            : "No hay clientes todavía. Usa “Nuevo cliente” para agregar el primero."}
-        </p>
+        <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-slate-300 px-4 py-10 text-center dark:border-slate-700">
+          <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-pink-100 text-pink-500 dark:bg-pink-500/15 dark:text-pink-300">
+            <IconUsers className="h-6 w-6" />
+          </span>
+          <p className="text-sm font-medium text-slate-500 dark:text-slate-400">
+            {buscando
+              ? `No se encontró ningún cliente con “${qDebounced}”.`
+              : "No hay clientes todavía."}
+          </p>
+          <p className="text-xs text-slate-400">
+            {buscando
+              ? "Revisa que el nombre esté bien escrito."
+              : "Usa “Nuevo cliente” para agregar el primero."}
+          </p>
+        </div>
       ) : (
         <div className="space-y-4">
           <p className="text-xs text-slate-400">
