@@ -9,6 +9,7 @@ import {
   descifrarCampo,
   last4,
 } from "@/lib/crypto";
+import { validarCuentaDestino } from "@/lib/validarCuentaDestino";
 
 const schema = z.object({
   fecha: z.string().regex(/^\d{4}-\d{2}-\d{2}/, "Fecha inválida").optional(),
@@ -62,6 +63,23 @@ export async function PUT(request: NextRequest, ctx: Ctx) {
     );
   }
   const d = parsed.data;
+
+  if (d.clienteId !== undefined || d.cuentaId !== undefined) {
+    const actual = await prisma.transferencia.findUnique({
+      where: { id },
+      select: { clienteId: true, cuentaId: true },
+    });
+    if (!actual) {
+      return NextResponse.json({ error: "No encontrada" }, { status: 404 });
+    }
+
+    const clienteId = d.clienteId !== undefined ? d.clienteId : actual.clienteId;
+    const cuentaId = d.cuentaId !== undefined ? d.cuentaId : actual.cuentaId;
+    const errorCuenta = await validarCuentaDestino(clienteId, cuentaId);
+    if (errorCuenta) {
+      return NextResponse.json({ error: errorCuenta }, { status: 400 });
+    }
+  }
   await prisma.transferencia.update({
     where: { id },
     data: {

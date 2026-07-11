@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { maskNumero, cifrarComprobante, cifrarCampo, descifrarCampo, last4 } from "@/lib/crypto";
 import { requireSession } from "@/lib/guard";
+import { validarCuentaDestino } from "@/lib/validarCuentaDestino";
 
 const schema = z.object({
   fecha: z
@@ -140,6 +141,11 @@ export async function POST(request: NextRequest) {
     );
   }
   const d = parsed.data;
+
+  const errorCuenta = await validarCuentaDestino(d.clienteId, d.cuentaId);
+  if (errorCuenta) {
+    return NextResponse.json({ error: errorCuenta }, { status: 400 });
+  }
 
   // Detección de duplicados: misma fecha (día), cliente, monto y moneda, no
   // borrada. Si existe y el usuario no lo ha confirmado, avisamos (409) para

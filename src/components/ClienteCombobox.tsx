@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { IconX } from "@/components/icons";
 
-type Opt = { id: string; nombre: string };
+type Opt = { id: string; nombre: string; frecuente?: boolean };
 
 // Buscador de cliente con autocompletado: escribes y filtra al instante.
 export default function ClienteCombobox({
@@ -89,7 +89,15 @@ export default function ClienteCombobox({
                   c.id === value ? "bg-indigo-50 font-medium dark:bg-slate-700" : ""
                 }`}
               >
-                {c.nombre}
+                <span className="flex items-center gap-2">
+                  {c.frecuente ? (
+                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-300/70 bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-300">
+                      <span aria-hidden="true">★</span>
+                      Frecuente
+                    </span>
+                  ) : null}
+                  <span className="truncate">{c.nombre}</span>
+                </span>
               </button>
             ))
           )}

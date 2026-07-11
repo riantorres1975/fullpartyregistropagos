@@ -35,8 +35,19 @@ type CuentaOpt = {
 type ClienteConCuentas = {
   id: string;
   nombre: string;
+  totalTransferencias: number;
   cuentas: CuentaOpt[];
 };
+
+const MAX_CLIENTES_FRECUENTES = 5;
+
+function crearOpcionesCliente(clientes: ClienteConCuentas[]) {
+  return clientes.map((cliente, index) => ({
+    id: cliente.id,
+    nombre: cliente.nombre,
+    frecuente: index < MAX_CLIENTES_FRECUENTES,
+  }));
+}
 
 type Transferencia = {
   id: string;
@@ -148,8 +159,13 @@ export default function TransferenciasPage() {
       (clientesData ?? []).map((c) => ({
         id: c.id,
         nombre: c.nombre,
+        totalTransferencias: c.totalTransferencias ?? 0,
         cuentas: c.cuentas ?? [],
-      })),
+      })).sort(
+        (a, b) =>
+          b.totalTransferencias - a.totalTransferencias ||
+          a.nombre.localeCompare(b.nombre, "es"),
+      ),
     [clientesData],
   );
 
@@ -230,6 +246,7 @@ export default function TransferenciasPage() {
   // Refresca la lista actual y marca el dashboard para revalidar.
   const cargar = async () => {
     await mutateList();
+    globalMutate("/api/clientes");
     globalMutate(
       (key) => typeof key === "string" && key.startsWith("/api/dashboard"),
     );
@@ -264,6 +281,10 @@ export default function TransferenciasPage() {
   async function crear(e: React.FormEvent, permitirDuplicado = false) {
     e.preventDefault();
     if (!form.monto) return;
+    if (cuentasDelCliente(form.clienteId).length > 1 && !form.cuentaId) {
+      toast("Elige una cuenta destino para este cliente", "error");
+      return;
+    }
     setGuardando(true);
     const res = await fetch("/api/transferencias", {
       method: "POST",
@@ -390,7 +411,7 @@ export default function TransferenciasPage() {
 
   const totalPaginas = Math.max(1, Math.ceil(total / pageSize));
   const cuentasForm = cuentasDelCliente(form.clienteId);
-  const opcionesCliente = clientes.map((c) => ({ id: c.id, nombre: c.nombre }));
+  const opcionesCliente = crearOpcionesCliente(clientes);
 
   return (
     <div className="space-y-6">
@@ -443,12 +464,15 @@ export default function TransferenciasPage() {
             />
           </div>
           <div>
-            <label className="label">Cuenta / Tarjeta</label>
+            <label className="label">
+              Cuenta / Tarjeta{cuentasForm.length > 1 ? " *" : ""}
+            </label>
             <select
               className="input"
               value={form.cuentaId}
               onChange={(e) => elegirCuenta(e.target.value)}
               disabled={!form.clienteId}
+              required={cuentasForm.length > 1}
             >
               {!form.clienteId ? (
                 <option value="">Elige un cliente primero</option>
@@ -456,7 +480,11 @@ export default function TransferenciasPage() {
                 <option value="">Este cliente no tiene cuentas guardadas</option>
               ) : (
                 <>
-                  <option value="">Sin especificar</option>
+                  <option value="">
+                    {cuentasForm.length > 1
+                      ? "Elige una cuenta destino"
+                      : "Sin especificar"}
+                  </option>
                   {cuentasForm.map((cu) => (
                     <option key={cu.id} value={cu.id}>
                       {cu.banco} · {cu.enmascarado}
@@ -465,6 +493,11 @@ export default function TransferenciasPage() {
                 </>
               )}
             </select>
+            {cuentasForm.length > 1 && !form.cuentaId ? (
+              <p className="mt-1 text-xs text-amber-600 dark:text-amber-300">
+                Este cliente tiene varias cuentas. Elige una para continuar.
+              </p>
+            ) : null}
           </div>
           <div>
             <label className="label">Monto *</label>
@@ -1196,10 +1229,14 @@ function EditarModal({
 
   const cuentas =
     clientes.find((c) => c.id === form.clienteId)?.cuentas ?? [];
-  const opcionesCliente = clientes.map((c) => ({ id: c.id, nombre: c.nombre }));
+  const opcionesCliente = crearOpcionesCliente(clientes);
 
   async function guardar(e: React.FormEvent) {
     e.preventDefault();
+    if (cuentas.length > 1 && !form.cuentaId) {
+      toast("Elige una cuenta destino para este cliente", "error");
+      return;
+    }
     setGuardando(true);
     const body: Record<string, unknown> = {
       ...form,
@@ -1207,12 +1244,17 @@ function EditarModal({
     };
     // Si el comprobante aún no terminó de cargar, no lo tocamos.
     if (!compListo) delete body.comprobante;
-    await fetch(`/api/transferencias/${transferencia.id}`, {
+    const res = await fetch(`/api/transferencias/${transferencia.id}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
     setGuardando(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      toast(data.error ?? "No se pudo guardar la transferencia", "error");
+      return;
+    }
     onSaved();
   }
 
@@ -1249,7 +1291,9 @@ function EditarModal({
             />
           </div>
           <div className="sm:col-span-2">
-            <label className="label">Cuenta / Tarjeta</label>
+            <label className="label">
+              Cuenta / Tarjeta{cuentas.length > 1 ? " *" : ""}
+            </label>
             <select
               className="input"
               value={form.cuentaId}
@@ -1263,6 +1307,7 @@ function EditarModal({
                 }));
               }}
               disabled={!form.clienteId}
+              required={cuentas.length > 1}
             >
               {!form.clienteId ? (
                 <option value="">Elige un cliente primero</option>
@@ -1270,7 +1315,11 @@ function EditarModal({
                 <option value="">Este cliente no tiene cuentas guardadas</option>
               ) : (
                 <>
-                  <option value="">Sin especificar</option>
+                  <option value="">
+                    {cuentas.length > 1
+                      ? "Elige una cuenta destino"
+                      : "Sin especificar"}
+                  </option>
                   {cuentas.map((cu) => (
                     <option key={cu.id} value={cu.id}>
                       {cu.banco} · {cu.enmascarado}
@@ -1279,6 +1328,11 @@ function EditarModal({
                 </>
               )}
             </select>
+            {cuentas.length > 1 && !form.cuentaId ? (
+              <p className="mt-1 text-xs text-amber-600 dark:text-amber-300">
+                Este cliente tiene varias cuentas. Elige una para continuar.
+              </p>
+            ) : null}
           </div>
           <div>
             <label className="label">Monto</label>
