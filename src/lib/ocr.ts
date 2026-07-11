@@ -45,6 +45,49 @@ export async function analizarRecibo(
   }
 }
 
+// Procesa un lote con un solo worker. Crear Tesseract es costoso, así que
+// reutilizarlo evita repetir la carga del motor y del idioma por cada captura.
+export async function analizarRecibos(
+  dataUrls: string[],
+  onProgreso?: (indice: number, progreso: number) => void,
+): Promise<(DatosRecibo | null)[]> {
+  const { createWorker, PSM } = (await import("tesseract.js")).default;
+  let indiceActual = 0;
+  const worker = await createWorker("spa", 1, {
+    workerPath: "/tesseract/worker.min.js",
+    corePath: "/tesseract/core",
+    langPath: "/tesseract/lang",
+    workerBlobURL: false,
+    logger: (mensaje: { status: string; progress: number }) => {
+      if (mensaje.status === "recognizing text" && onProgreso) {
+        onProgreso(indiceActual, Math.round(mensaje.progress * 100));
+      }
+    },
+  });
+
+  try {
+    await worker.setParameters({ tessedit_pageseg_mode: PSM.AUTO });
+    const resultados: (DatosRecibo | null)[] = [];
+    for (indiceActual = 0; indiceActual < dataUrls.length; indiceActual++) {
+      try {
+        const { data } = await worker.recognize(dataUrls[indiceActual]);
+        const texto = data.text || "";
+        resultados.push({
+          monto: detectarMonto(texto),
+          referencia: detectarReferencia(texto),
+          banco: detectarBanco(texto),
+          texto,
+        });
+      } catch {
+        resultados.push(null);
+      }
+    }
+    return resultados;
+  } finally {
+    await worker.terminate();
+  }
+}
+
 function aNumero(raw: string): number | null {
   const n = parseFloat(raw.replace(/\s/g, "").replace(/,/g, ""));
   return isNaN(n) ? null : n;

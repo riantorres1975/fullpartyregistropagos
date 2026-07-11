@@ -7,6 +7,7 @@ import { formatMonto, formatFecha } from "@/lib/format";
 import { toast } from "@/lib/toast";
 import ClienteCombobox from "@/components/ClienteCombobox";
 import BancoSelect from "@/components/BancoSelect";
+import TransferenciasLoteModal from "@/components/TransferenciasLoteModal";
 import { comprimirImagen, prepararParaOCR } from "@/lib/imagen";
 import { analizarRecibo, type DatosRecibo } from "@/lib/ocr";
 import { generarReciboFile } from "@/lib/recibo";
@@ -149,6 +150,7 @@ export default function TransferenciasPage() {
   const [editar, setEditar] = useState<Transferencia | null>(null);
   const [verComprobante, setVerComprobante] = useState<string | null>(null);
   const [mostrarForm, setMostrarForm] = useState(true);
+  const [mostrarLote, setMostrarLote] = useState(false);
   const formRef = useRef<HTMLFormElement>(null);
   const filtroRef = useRef<HTMLInputElement>(null);
 
@@ -418,21 +420,30 @@ export default function TransferenciasPage() {
       <div>
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Transferencias</h1>
-          <button
-            onClick={() => setMostrarForm((v) => !v)}
-            className="btn-primary"
-            title="Atajo: Alt+N"
-          >
-            {mostrarForm ? (
-              <>
-                <IconX className="h-4 w-4" /> Ocultar formulario
-              </>
-            ) : (
-              <>
-                <IconPlus className="h-4 w-4" /> Nueva transferencia
-              </>
-            )}
-          </button>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={() => setMostrarLote(true)}
+              className="btn-secondary"
+            >
+              <IconImage className="h-4 w-4" /> Carga por lote
+            </button>
+            <button
+              onClick={() => setMostrarForm((v) => !v)}
+              className="btn-primary"
+              title="Atajo: Alt+N"
+            >
+              {mostrarForm ? (
+                <>
+                  <IconX className="h-4 w-4" /> Ocultar formulario
+                </>
+              ) : (
+                <>
+                  <IconPlus className="h-4 w-4" /> Nueva transferencia
+                </>
+              )}
+            </button>
+          </div>
         </div>
         <p className="mt-1 text-xs text-slate-400">
           Atajos: <kbd className="font-sans">Alt+N</kbd> nueva ·{" "}
@@ -1011,6 +1022,19 @@ export default function TransferenciasPage() {
             setEditar(null);
             cargar();
             toast("Cambios guardados");
+          }}
+        />
+      )}
+
+      {mostrarLote && (
+        <TransferenciasLoteModal
+          clientes={clientes}
+          onClose={() => setMostrarLote(false)}
+          onSaved={(cantidad) => {
+            setMostrarLote(false);
+            setPage(1);
+            cargar();
+            toast(`${cantidad} transferencias guardadas`);
           }}
         />
       )}
