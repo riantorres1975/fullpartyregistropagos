@@ -76,7 +76,7 @@ export default function ClienteCombobox({
         </button>
       )}
       {abierto && (
-        <div className="absolute z-30 mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-600 dark:bg-slate-800">
+        <div className="absolute z-30 mt-1 max-h-56 min-w-full w-[min(22rem,calc(100vw-2rem))] overflow-y-auto rounded-lg border border-slate-200 bg-white shadow-lg dark:border-slate-600 dark:bg-slate-800">
           {filtrados.length === 0 ? (
             <p className="px-3 py-2 text-sm text-slate-400">Sin coincidencias</p>
           ) : (
@@ -90,13 +90,15 @@ export default function ClienteCombobox({
                 }`}
               >
                 <span className="flex items-center gap-2">
+                  <span className="min-w-0 flex-1 truncate" title={c.nombre}>
+                    {c.nombre}
+                  </span>
                   {c.frecuente ? (
                     <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-amber-300/70 bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:border-amber-400/30 dark:bg-amber-400/10 dark:text-amber-300">
                       <span aria-hidden="true">★</span>
                       Frecuente
                     </span>
                   ) : null}
-                  <span className="truncate">{c.nombre}</span>
                 </span>
               </button>
             ))
